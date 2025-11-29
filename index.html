@@ -4,6 +4,9 @@
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Worker Attendance & Scaffolding Report</title>
+    <script>
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec"; // **REPLACE THIS URL**
+    </script>
     <style>
         /* Mobile-First Base Styles */
         body {
@@ -132,8 +135,12 @@
             <div id="login-screen" class="screen">
                 <h2>Supervisor Login</h2>
                 <div id="login-error" class="error hidden"></div>
-                <label for="username">Username</label>
-                <input type="text" id="username" placeholder="Enter your username">
+                
+                <label for="supervisor-select">Select Supervisor</label>
+                <select id="supervisor-select" onchange="getEl('username').value = this.value">
+                    <option value="">-- Loading Supervisors --</option>
+                </select>
+                <input type="hidden" id="username">
 
                 <label for="passcode">Passcode</label>
                 <input type="password" id="passcode" placeholder="Enter your passcode">
@@ -232,23 +239,42 @@
         MAX_LOGIN_ATTEMPTS: 5,
     };
 
-    // --- Utility Functions ---
+    // --- Utility Functions (fetch API implementation) ---
     const getEl = id => document.getElementById(id);
     const show = id => getEl(id).classList.remove('hidden');
     const hide = id => getEl(id).classList.add('hidden');
     const setInner = (id, html) => getEl(id).innerHTML = html;
     
+    async function apiCall(flow, data = {}) {
+        const payload = { flow, data };
+        try {
+            const response = await fetch(GAS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                return result.data;
+            } else {
+                throw new Error(result.message || 'API call failed with unknown error.');
+            }
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            throw new Error('Network or Server communication error: ' + error.message);
+        }
+    }
+    
     function onServerFailure(error) {
         hide('loading');
         console.error('Apps Script Error:', error);
-        const errorEl = state.currentFlow === 'check-in' ? getEl('checkin-error') : getEl('checkout-error');
-        if (getEl('login-error').classList.contains('hidden')) {
-             errorEl.innerText = 'Server Error: ' + error.message || 'An unknown error occurred.';
-             show(errorEl.id);
-        } else {
-             getEl('login-error').innerText = 'Server Error: ' + error.message || 'An unknown error occurred.';
-             show('login-error');
-        }
+        const errorEl = state.currentFlow === 'login-screen' ? getEl('login-error') : 
+                        state.currentFlow === 'check-in' ? getEl('checkin-error') : 
+                        getEl('checkout-error');
+                        
+        errorEl.innerText = error.message || 'An unknown server error occurred.';
+        show(errorEl.id);
     }
     
     // --- Core UI & Navigation ---
@@ -272,6 +298,7 @@
             show('main-menu');
         } else if (flow === 'login-screen') {
             show('login-screen');
+            loadSupervisorDropdown(); 
         } else if (flow === 'success-screen') {
             show('success-screen');
         } else if (flow === 'confirmation-screen') {
@@ -280,33 +307,59 @@
     }
     
     function resetApp() {
-        // Simple way to reset: reload the screen to the main menu
         getEl('scaffolding-entries').innerHTML = '';
         getEl('ot-workers-container').innerHTML = '';
         showFlow('main-menu');
     }
 
     // --- Authentication ---
-    function handleLogin() {
-        const username = getEl('username').value.trim();
+    
+    async function loadSupervisorDropdown() {
+        const select = getEl('supervisor-select');
+        select.innerHTML = '<option value="">-- Loading Supervisors --</option>';
+        try {
+            const supervisors = await apiCall('login_list');
+            select.innerHTML = '<option value="">-- Select Supervisor --</option>';
+            supervisors.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.Username;
+                option.text = s.SupervisorName;
+                select.appendChild(option);
+            });
+            if (supervisors.length > 0) {
+                 select.value = supervisors[0].Username;
+                 getEl('username').value = supervisors[0].Username;
+            } else {
+                 select.innerHTML = '<option value="">-- No Supervisors Found! --</option>';
+            }
+        } catch (e) {
+            select.innerHTML = '<option value="">-- Error Loading Supervisors --</option>';
+            onServerFailure(e);
+        }
+    }
+
+    async function handleLogin() {
+        const username = getEl('supervisor-select').value;
         const passcode = getEl('passcode').value;
         hide('login-error');
         show('loading');
 
         if (!username || !passcode) {
             hide('loading');
-            getEl('login-error').innerText = 'Please enter both username and passcode.';
+            getEl('login-error').innerText = 'Please select a supervisor and enter a passcode.';
             show('login-error');
             return;
         }
 
-        google.script.run
-            .withSuccessHandler(onLoginSuccess)
-            .withFailureHandler(onServerFailure)
-            .getSupervisor(username, passcode);
+        try {
+            const supervisor = await apiCall('login', { username, passcode });
+            onLoginSuccess(supervisor);
+        } catch (e) {
+            onServerFailure(e);
+        }
     }
 
-    function onLoginSuccess(supervisor) {
+    async function onLoginSuccess(supervisor) {
         hide('loading');
         if (supervisor) {
             state.supervisor = supervisor;
@@ -315,24 +368,22 @@
             getEl('supervisor-info').innerText = `Logged in as: ${supervisor.SupervisorName}`;
             setInner('welcome-message', `Welcome, ${supervisor.SupervisorName}!`);
             
-            google.script.run
-                .withSuccessHandler(onDataLoaded)
-                .withFailureHandler(onServerFailure)
-                .getDataForApp();
+            try {
+                show('loading');
+                const data = await apiCall('load_data');
+                onDataLoaded(data);
+            } catch (e) {
+                onServerFailure(e);
+            }
         } else {
             state.failedLoginAttempts++;
-            getEl('login-error').innerText = 'Invalid username or passcode.';
+            getEl('login-error').innerText = 'Invalid passcode for the selected supervisor.';
             show('login-error');
-            if (state.failedLoginAttempts >= state.MAX_LOGIN_ATTEMPTS) {
-                getEl('login-error').innerText = 'Too many failed attempts. Please contact admin.';
-                getEl('username').disabled = true;
-                getEl('passcode').disabled = true;
-                document.querySelector('#login-screen button').disabled = true;
-            }
         }
     }
     
     function onDataLoaded(data) {
+        hide('loading');
         state.projects = data.projects;
         state.workers = data.workers;
         state.areas = data.areas;
@@ -342,7 +393,6 @@
     function logout() {
         state.supervisor = null;
         getEl('supervisor-info').innerText = '';
-        getEl('username').value = '';
         getEl('passcode').value = '';
         showFlow('login-screen');
     }
@@ -672,21 +722,21 @@
         }
     }
 
-    function finalSubmit() {
+    async function finalSubmit() {
         const flow = getEl('confirm-submit-btn').dataset.flow;
         hide('confirmation-screen');
         show('loading');
 
-        if (flow === 'check-in') {
-            google.script.run
-                .withSuccessHandler(onSubmissionSuccess)
-                .withFailureHandler(onServerFailure)
-                .submitCheckIn(currentPayload);
-        } else if (flow === 'check-out') {
-            google.script.run
-                .withSuccessHandler(onSubmissionSuccess)
-                .withFailureHandler(onServerFailure)
-                .submitCheckOut(currentPayload);
+        try {
+            let result;
+            if (flow === 'check-in') {
+                result = await apiCall('submit_checkin', currentPayload);
+            } else if (flow === 'check-out') {
+                result = await apiCall('submit_checkout', currentPayload);
+            }
+            onSubmissionSuccess(result);
+        } catch (e) {
+            onServerFailure(e);
         }
     }
     
@@ -704,15 +754,11 @@
         getEl('generated-report').innerText = result.ReportText;
         getEl('whatsapp-share-btn').dataset.reportText = result.ReportText;
         
-        if (navigator.share) {
-             show('whatsapp-share-btn');
+        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+        if (navigator.share || isMobile) {
+            show('whatsapp-share-btn');
         } else {
-             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-             if (isMobile) {
-                show('whatsapp-share-btn');
-             } else {
-                 hide('whatsapp-share-btn');
-             }
+            hide('whatsapp-share-btn');
         }
         
         showFlow('success-screen');
