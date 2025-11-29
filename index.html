@@ -1,443 +1,759 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Attendance App</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Worker Attendance & Scaffolding Report</title>
     <style>
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto;}
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        input, select, button { touch-action: manipulation; }
+        /* Mobile-First Base Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 1.5em;
+            margin: 0;
+        }
+        /* Buttons & Forms */
+        button, input[type="submit"], .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            font-size: 1em;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: background-color 0.3s;
+        }
+        button:hover:not(:disabled), input[type="submit"]:hover:not(:disabled), .btn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="text"], input[type="password"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 15px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .message, .error {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .hidden {
+            display: none;
+        }
+
+        /* Flow Specific */
+        .scaffolding-entry {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            background-color: white;
+            position: relative;
+        }
+        .remove-entry {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 1.5em;
+            padding: 0;
+            margin: 0;
+            width: auto;
+            display: inline-block;
+        }
+        .ot-worker-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .ot-worker-box select, .ot-worker-box input {
+            flex-grow: 1;
+            margin: 0;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen text-gray-800 font-sans">
+<body>
+    <header>
+        <h1 id="app-title">Scaffolding Reporter</h1>
+        <div id="supervisor-info"></div>
+    </header>
 
-    <script>
-        // !!! REPLACE THIS PLACEHOLDER with your actual Google Apps Script Web App URL !!!
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec"; 
-        // -----------------------------------------------------------------------------
-    </script>
+    <div class="container">
+        <div id="app-container">
 
-    <div class="max-w-md mx-auto bg-white min-h-screen shadow-xl relative pb-10">
-        
-        <div class="bg-blue-800 text-white p-4 flex justify-between items-center shadow-md">
-            <h1 class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>Site Tracker</h1>
-            <button id="logout-btn" onclick="logout()" class="hidden text-xs bg-blue-900 px-3 py-1 rounded border border-blue-700">LOGOUT</button>
-        </div>
+            <div id="login-screen" class="screen">
+                <h2>Supervisor Login</h2>
+                <div id="login-error" class="error hidden"></div>
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username">
 
-        <div id="notification" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-sm px-4 py-3 rounded shadow-lg z-50 text-center w-3/4 transition-opacity duration-300"></div>
+                <label for="passcode">Passcode</label>
+                <input type="password" id="passcode" placeholder="Enter your passcode">
 
-        <div id="view-login" class="p-8 flex flex-col justify-center h-[80vh]">
-            <h2 class="text-2xl font-bold mb-2 text-center text-gray-700">Supervisor Login</h2>
-            <p class="text-center text-gray-400 text-sm mb-8">Enter your credentials to continue</p>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-600 uppercase">Username</label>
-                    <input type="text" id="login-user" class="w-full p-3 border border-gray-300 rounded focus:border-blue-500 focus:outline-none" placeholder="e.g. admin">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-600 uppercase">Password</label>
-                    <input type="password" id="login-pass" class="w-full p-3 border border-gray-300 rounded focus:border-blue-500 focus:outline-none" placeholder="e.g. 1234">
-                </div>
-                <button onclick="login()" class="w-full bg-blue-600 text-white p-4 rounded font-bold hover:bg-blue-700 transition shadow-lg mt-4">LOGIN</button>
-            </div>
-            <div id="login-loader" class="loader hidden mt-6"></div>
-            
-            <div class="mt-8 text-center text-xs text-gray-400">
-                <p>Sample Login: admin / 1234</p>
-            </div>
-        </div>
-
-        <div id="view-dashboard" class="hidden p-6">
-            <div class="mb-6">
-                <h2 class="text-xl font-bold text-gray-700">Hello, <span id="dash-user" class="text-blue-600"></span></h2>
-                <p class="text-sm text-gray-500">What would you like to do today?</p>
+                <button onclick="handleLogin()">Login</button>
             </div>
 
-            <div class="grid grid-cols-1 gap-4">
-                <button onclick="showCheckIn()" class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 transition flex items-center justify-between">
-                    <div class="text-left">
-                        <div class="font-bold text-lg">Check IN</div>
-                        <div class="text-xs opacity-90">Morning Attendance</div>
-                    </div>
-                    <i class="fas fa-user-check text-3xl opacity-50"></i>
-                </button>
-
-                <button onclick="showCheckOut()" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700 transition flex items-center justify-between">
-                    <div class="text-left">
-                        <div class="font-bold text-lg">Check OUT</div>
-                        <div class="text-xs opacity-90">Daily Report & Measurements</div>
-                    </div>
-                    <i class="fas fa-clipboard-list text-3xl opacity-50"></i>
-                </button>
+            <div id="main-menu" class="screen hidden">
+                <h2 id="welcome-message"></h2>
+                <button onclick="showFlow('check-in')">📅 Worker Check-In</button>
+                <button onclick="showFlow('check-out')">👷 Daily Scaffolding Report (Check-Out)</button>
+                <button onclick="logout()">🚪 Logout</button>
             </div>
-            
-            <div id="data-loader" class="loader mt-10"></div>
-            <p id="data-status" class="text-center text-gray-400 mt-2 text-xs">Syncing project data...</p>
-        </div>
 
-        <div id="view-checkin" class="hidden p-4">
-            <button onclick="showDashboard()" class="mb-4 text-gray-500 text-sm font-bold flex items-center"><i class="fas fa-arrow-left mr-2"></i> Dashboard</button>
-            <div class="bg-white rounded-lg p-1">
-                <h2 class="text-lg font-bold mb-4 text-green-700 border-b pb-2">Check-In Form</h2>
+            <div id="check-in-flow" class="screen hidden">
+                <h2>Worker Check-In</h2>
+                <div id="checkin-error" class="error hidden"></div>
+
+                <label for="checkin-project">Select Project</label>
+                <select id="checkin-project" onchange="loadWorkers('checkin')"></select>
+
+                <label for="checkin-worker">Select Worker</label>
+                <select id="checkin-worker"></select>
                 
-                <label class="block text-xs font-bold text-gray-600 mb-1">PROJECT</label>
-                <select id="ci-project" onchange="renderWorkers('ci')" class="w-full p-3 border rounded mb-4 bg-gray-50 font-semibold"></select>
+                <label for="checkin-notes">Notes (Optional)</label>
+                <input type="text" id="checkin-notes" placeholder="e.g., Late arrival">
 
-                <label class="block text-xs font-bold text-gray-600 mb-1">SELECT WORKERS</label>
-                <div id="ci-worker-list" class="h-64 overflow-y-auto border rounded p-2 bg-gray-50 mb-4 space-y-2"></div>
-
-                <button onclick="submitCheckIn()" class="w-full bg-green-600 text-white p-3 rounded font-bold shadow-lg">SUBMIT CHECK-IN</button>
-                <div id="ci-loader" class="loader hidden mt-4"></div>
+                <button onclick="confirmSubmission('check-in')">Submit Check-In</button>
+                <button class="btn" onclick="showFlow('main-menu')" style="background-color: #6c757d;">Cancel</button>
             </div>
-        </div>
 
-        <div id="view-checkout" class="hidden p-4 pb-20">
-            <button onclick="showDashboard()" class="mb-4 text-gray-500 text-sm font-bold flex items-center"><i class="fas fa-arrow-left mr-2"></i> Dashboard</button>
-            <div class="bg-white rounded-lg p-1">
-                <h2 class="text-lg font-bold mb-4 text-orange-700 border-b pb-2">Check-Out & Report</h2>
+            <div id="check-out-flow" class="screen hidden">
+                <h2>Daily Scaffolding Report</h2>
+                <div id="checkout-error" class="error hidden"></div>
 
-                <label class="block text-xs font-bold text-gray-600 mb-1">PROJECT</label>
-                <select id="co-project" onchange="updateShiftHours(); renderWorkers('ot'); calculateTotals();" class="w-full p-3 border rounded mb-4 bg-gray-50 font-semibold"></select>
-
-                <div class="bg-gray-50 p-2 rounded border mb-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-gray-700 text-sm">Measurements</h3>
-                        <button onclick="addMeasurementRow()" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">+ ADD ROW</button>
+                <label for="checkout-project">Select Project</label>
+                <select id="checkout-project" onchange="loadWorkers('checkout'); loadAreas()"></select>
+                
+                <h3>Scaffolding Entries</h3>
+                <div id="scaffolding-entries">
                     </div>
-                    <div id="measurement-container" class="space-y-2"></div>
+                <button onclick="addScaffoldingEntry()" style="background-color: #28a745;">+ Add Entry</button>
+                
+                <hr>
+                
+                <h3>Overtime Manpower</h3>
+                <div id="ot-workers-container">
+                    </div>
+                <button onclick="addOtWorker()" style="background-color: #ffc107; color: #333;">+ Add OT Worker</button>
+
+                <hr>
+
+                <div id="summary-section">
+                    <label for="checkout-notes">Report Notes (Optional)</label>
+                    <input type="text" id="checkout-notes" placeholder="General daily report notes">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase">Total Manpower</label>
-                        <input type="number" id="co-manpower" oninput="calculateTotals()" class="w-full p-2 border rounded text-center font-bold text-lg" placeholder="0">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase">Select OT Staff</label>
-                        <button onclick="document.getElementById('ot-modal').classList.remove('hidden')" class="w-full p-2 border rounded bg-blue-50 text-blue-600 text-xs font-bold h-[46px] truncate">Select List...</button>
-                    </div>
-                </div>
-
-                <div class="bg-gray-800 text-white p-4 rounded-lg mb-4 text-sm shadow-lg">
-                    <div class="flex justify-between mb-1"><span>Tot. Erection:</span> <span id="disp-erection" class="font-mono text-green-400">0.00</span></div>
-                    <div class="flex justify-between mb-1"><span>Tot. Dismantling:</span> <span id="disp-dismantling" class="font-mono text-orange-400">0.00</span></div>
-                    <div class="border-t border-gray-600 my-2"></div>
-                    <div class="flex justify-between mb-1"><span>Total Manhours:</span> <span id="disp-manhours" class="font-mono font-bold">0</span></div>
-                    <div class="flex justify-between"><span>Productivity:</span> <span id="disp-prod" class="font-mono font-bold text-blue-300">0.00</span></div>
-                </div>
-
-                <button onclick="submitCheckOut()" class="w-full bg-orange-600 text-white p-3 rounded font-bold shadow-lg">SUBMIT REPORT</button>
-                <div id="co-loader" class="loader hidden mt-4"></div>
+                <button onclick="confirmSubmission('check-out')">Submit Daily Report</button>
+                <button class="btn" onclick="showFlow('main-menu')" style="background-color: #6c757d;">Cancel</button>
             </div>
-        </div>
 
-        <div id="ot-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div class="bg-white p-4 rounded-lg w-11/12 max-w-sm max-h-[70vh] flex flex-col">
-                <h3 class="font-bold mb-2 text-gray-700">Select Workers in OT</h3>
-                <div id="ot-worker-list" class="overflow-y-auto flex-1 border p-2 mb-2 bg-gray-50 rounded"></div>
-                <button onclick="document.getElementById('ot-modal').classList.add('hidden'); calculateTotals();" class="bg-blue-600 text-white p-2 rounded font-bold">DONE</button>
+            <div id="confirmation-screen" class="screen hidden">
+                <h2>Confirmation</h2>
+                <div id="confirmation-details"></div>
+                <button id="confirm-submit-btn" onclick="finalSubmit()">Confirm & Submit</button>
+                <button class="btn" onclick="goBackToForm()" style="background-color: #dc3545;">Go Back & Edit</button>
             </div>
-        </div>
 
-        <div id="report-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div class="bg-white p-5 rounded-lg w-11/12 max-w-sm shadow-2xl">
-                <div class="text-center mb-3">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                        <i class="fas fa-check text-green-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 mt-2">Report Generated!</h3>
-                </div>
-                <textarea id="report-text" class="w-full h-32 p-2 border text-xs bg-gray-50 rounded mb-4 font-mono" readonly></textarea>
-                <div class="flex gap-2">
-                    <button onclick="copyReport()" class="flex-1 bg-gray-200 p-2 rounded text-gray-700 font-bold text-sm">Copy</button>
-                    <button onclick="shareWhatsapp()" class="flex-1 bg-green-500 text-white p-2 rounded font-bold text-sm"><i class="fab fa-whatsapp"></i> WhatsApp</button>
-                </div>
-                <button onclick="closeReport()" class="w-full mt-4 text-gray-400 text-xs">Close Window</button>
+            <div id="success-screen" class="screen hidden">
+                <h2>Submission Successful!</h2>
+                <div id="success-message" class="success"></div>
+                <h3>Generated Report</h3>
+                <pre id="generated-report" style="white-space: pre-wrap; background-color: #eee; padding: 10px; border-radius: 4px;"></pre>
+                
+                <button onclick="copyReport()">📋 Copy Report</button>
+                <button id="whatsapp-share-btn" class="hidden" onclick="shareToWhatsApp()">📲 Share to WhatsApp</button>
+                
+                <button class="btn" onclick="resetApp()">Start New Flow</button>
+            </div>
+            
+            <div id="loading" class="hidden" style="text-align: center; padding: 20px;">
+                <p>Processing request, please wait...</p>
             </div>
         </div>
     </div>
 
-    <script>
-        // --- GLOBAL STATE ---
-        let appData = { projects: [], workers: [], areas: [] };
-        let currentUser = "";
-        let currentShiftHours = 8; 
+<script>
+    // --- Global State ---
+    const state = {
+        supervisor: null,
+        projects: [],
+        workers: [],
+        areas: [],
+        currentFlow: null, // 'check-in' or 'check-out'
+        failedLoginAttempts: 0,
+        MAX_LOGIN_ATTEMPTS: 5,
+    };
 
-        // --- NAVIGATION ---
-        function notify(msg) {
-            const n = document.getElementById('notification');
-            n.innerText = msg; n.classList.remove('hidden');
-            setTimeout(() => n.classList.add('hidden'), 3000);
+    // --- Utility Functions ---
+    const getEl = id => document.getElementById(id);
+    const show = id => getEl(id).classList.remove('hidden');
+    const hide = id => getEl(id).classList.add('hidden');
+    const setInner = (id, html) => getEl(id).innerHTML = html;
+    
+    function onServerFailure(error) {
+        hide('loading');
+        console.error('Apps Script Error:', error);
+        const errorEl = state.currentFlow === 'check-in' ? getEl('checkin-error') : getEl('checkout-error');
+        if (getEl('login-error').classList.contains('hidden')) {
+             errorEl.innerText = 'Server Error: ' + error.message || 'An unknown error occurred.';
+             show(errorEl.id);
+        } else {
+             getEl('login-error').innerText = 'Server Error: ' + error.message || 'An unknown error occurred.';
+             show('login-error');
         }
-
-        function switchView(id) {
-            ['view-login', 'view-dashboard', 'view-checkin', 'view-checkout'].forEach(v => document.getElementById(v).classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            window.scrollTo(0,0);
-        }
+    }
+    
+    // --- Core UI & Navigation ---
+    function showFlow(flow) {
+        state.currentFlow = flow;
+        document.querySelectorAll('.screen').forEach(el => hide(el.id));
+        hide('login-error'); hide('checkin-error'); hide('checkout-error');
         
-        function showDashboard() { switchView('view-dashboard'); document.getElementById('logout-btn').classList.remove('hidden'); }
-        function showCheckIn() { renderWorkers('ci'); switchView('view-checkin'); }
-        function showCheckOut() { 
-            document.getElementById('measurement-container').innerHTML = ''; 
-            addMeasurementRow(); 
-            updateShiftHours(); // CRITICAL: Updates shift hours before calculations
-            renderWorkers('ot');
-            calculateTotals(); 
-            switchView('view-checkout'); 
+        if (flow === 'check-in') {
+            show('check-in-flow');
+            populateProjects('checkin');
+            loadWorkers('checkin');
+        } else if (flow === 'check-out') {
+            show('check-out-flow');
+            populateProjects('checkout');
+            loadWorkers('checkout');
+            loadAreas();
+            if (getEl('scaffolding-entries').children.length === 0) addScaffoldingEntry();
+            if (getEl('ot-workers-container').children.length === 0) addOtWorker();
+        } else if (flow === 'main-menu') {
+            show('main-menu');
+        } else if (flow === 'login-screen') {
+            show('login-screen');
+        } else if (flow === 'success-screen') {
+            show('success-screen');
+        } else if (flow === 'confirmation-screen') {
+            show('confirmation-screen');
+        }
+    }
+    
+    function resetApp() {
+        // Simple way to reset: reload the screen to the main menu
+        getEl('scaffolding-entries').innerHTML = '';
+        getEl('ot-workers-container').innerHTML = '';
+        showFlow('main-menu');
+    }
+
+    // --- Authentication ---
+    function handleLogin() {
+        const username = getEl('username').value.trim();
+        const passcode = getEl('passcode').value;
+        hide('login-error');
+        show('loading');
+
+        if (!username || !passcode) {
+            hide('loading');
+            getEl('login-error').innerText = 'Please enter both username and passcode.';
+            show('login-error');
+            return;
         }
 
-        // --- API HANDLER ---
-        async function postData(data) {
-            const response = await fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify(data)
-            });
-            return await response.json();
-        }
+        google.script.run
+            .withSuccessHandler(onLoginSuccess)
+            .withFailureHandler(onServerFailure)
+            .getSupervisor(username, passcode);
+    }
 
-        // --- LOGIN & LOAD ---
-        async function login() {
-            const u = document.getElementById('login-user').value;
-            const p = document.getElementById('login-pass').value;
-            if(!u || !p) return notify("Enter details");
-            document.getElementById('login-loader').classList.remove('hidden');
-            try {
-                const res = await postData({ action: "login", username: u, password: p });
-                if (res.status === "success") {
-                    currentUser = res.username;
-                    document.getElementById('dash-user').innerText = currentUser;
-                    showDashboard();
-                    loadData();
-                } else notify(res.message);
-            } catch (e) { notify("Connection Error"); }
-            document.getElementById('login-loader').classList.add('hidden');
-        }
-
-        function logout() { location.reload(); }
-
-        async function loadData() {
-            try {
-                const res = await postData({ action: "getData" });
-                appData = res;
-                document.getElementById('data-status').innerText = "Data Synced";
-                document.getElementById('data-loader').classList.add('hidden');
-                
-                const populate = (id) => {
-                    const sel = document.getElementById(id);
-                    sel.innerHTML = "";
-                    appData.projects.forEach(p => {
-                        let opt = document.createElement('option');
-                        opt.value = p.name; opt.innerText = p.name; opt.dataset.shift = p.shift;
-                        sel.appendChild(opt);
-                    });
-                };
-                populate('ci-project');
-                populate('co-project');
-                
-                // Set initial shift hours after populating
-                updateShiftHours();
-
-            } catch (e) { notify("Failed to load data"); }
-        }
-
-        function updateShiftHours() {
-            const coSelect = document.getElementById('co-project');
-            const selectedOpt = coSelect.options[coSelect.selectedIndex];
-            currentShiftHours = selectedOpt ? parseInt(selectedOpt.dataset.shift) || 8 : 8;
-        }
-
-        // --- WORKER RENDERER ---
-        function renderWorkers(mode) {
-            const projSelect = document.getElementById(mode + '-project');
-            const pid = projSelect.value;
-            const container = document.getElementById(mode + '-worker-list');
-            container.innerHTML = "";
+    function onLoginSuccess(supervisor) {
+        hide('loading');
+        if (supervisor) {
+            state.supervisor = supervisor;
+            state.failedLoginAttempts = 0;
             
-            const filtered = appData.workers.filter(w => w.project === pid);
-            if (filtered.length === 0) {
-                container.innerHTML = "<div class='p-2 text-gray-400'>No workers found for this project.</div>";
-                return;
+            getEl('supervisor-info').innerText = `Logged in as: ${supervisor.SupervisorName}`;
+            setInner('welcome-message', `Welcome, ${supervisor.SupervisorName}!`);
+            
+            google.script.run
+                .withSuccessHandler(onDataLoaded)
+                .withFailureHandler(onServerFailure)
+                .getDataForApp();
+        } else {
+            state.failedLoginAttempts++;
+            getEl('login-error').innerText = 'Invalid username or passcode.';
+            show('login-error');
+            if (state.failedLoginAttempts >= state.MAX_LOGIN_ATTEMPTS) {
+                getEl('login-error').innerText = 'Too many failed attempts. Please contact admin.';
+                getEl('username').disabled = true;
+                getEl('passcode').disabled = true;
+                document.querySelector('#login-screen button').disabled = true;
             }
+        }
+    }
+    
+    function onDataLoaded(data) {
+        state.projects = data.projects;
+        state.workers = data.workers;
+        state.areas = data.areas;
+        showFlow('main-menu');
+    }
 
-            filtered.forEach(w => {
-                const label = document.createElement('label');
-                label.className = "flex items-center gap-3 p-3 border-b bg-white";
-                label.innerHTML = `
-                    <input type="checkbox" value="${w.code}" data-name="${w.name}" class="w-5 h-5">
-                    <div><div class="font-bold text-sm">${w.name}</div><div class="text-xs text-gray-500">${w.code}</div></div>
-                `;
-                container.appendChild(label);
+    function logout() {
+        state.supervisor = null;
+        getEl('supervisor-info').innerText = '';
+        getEl('username').value = '';
+        getEl('passcode').value = '';
+        showFlow('login-screen');
+    }
+
+    // --- Data Population ---
+    function populateProjects(flowPrefix) {
+        const select = getEl(`${flowPrefix}-project`);
+        select.innerHTML = '<option value="">-- Select a Project --</option>';
+        state.projects.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.ProjectID;
+            option.text = `${p.ProjectName} (Shift: ${p.ShiftHours}h)`;
+            option.dataset.shiftHours = p.ShiftHours;
+            select.appendChild(option);
+        });
+        if (state.projects.length > 0) {
+            select.value = state.projects[0].ProjectID;
+        }
+    }
+    
+    function loadWorkers(flowPrefix) {
+        const projectId = getEl(`${flowPrefix}-project`).value;
+        const workerSelect = getEl(`${flowPrefix}-worker`);
+        if (workerSelect) {
+             workerSelect.innerHTML = '<option value="">-- Select a Worker --</option>';
+        }
+
+        const workerSelects = document.querySelectorAll('.ot-worker-select');
+        workerSelects.forEach(select => {
+            const oldValue = select.value;
+            select.innerHTML = '<option value="">-- Select OT Worker --</option>';
+            const filteredWorkers = state.workers.filter(w => w.ProjectID === projectId);
+            filteredWorkers.forEach(w => {
+                const option = document.createElement('option');
+                option.value = w.EmpCode;
+                option.text = `${w.WorkerName} (${w.EmpCode})`;
+                option.dataset.workerName = w.WorkerName;
+                select.appendChild(option);
+            });
+            select.value = oldValue;
+        });
+        
+        if (workerSelect) {
+            const filteredWorkers = state.workers.filter(w => w.ProjectID === projectId);
+            filteredWorkers.forEach(w => {
+                const option = document.createElement('option');
+                option.value = w.EmpCode;
+                option.text = `${w.WorkerName} (${w.EmpCode})`;
+                option.dataset.workerName = w.WorkerName;
+                workerSelect.appendChild(option);
+            });
+        }
+    }
+
+    function loadAreas() {
+        const projectId = getEl('checkout-project').value;
+        document.querySelectorAll('.area-select').forEach(select => {
+            const oldValue = select.value;
+            select.innerHTML = '<option value="">-- Select Area --</option>';
+            state.areas.filter(a => !a.ProjectID || a.ProjectID === projectId).forEach(a => {
+                const option = document.createElement('option');
+                option.value = a.AreaID;
+                option.text = a.AreaName;
+                option.dataset.areaName = a.AreaName;
+                select.appendChild(option);
+            });
+            select.value = oldValue;
+        });
+    }
+
+    // --- Check-Out Flow Helpers ---
+    let entryCounter = 0;
+    function addScaffoldingEntry(data = {}) {
+        entryCounter++;
+        const container = getEl('scaffolding-entries');
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'scaffolding-entry';
+        entryDiv.dataset.id = entryCounter;
+        
+        entryDiv.innerHTML = `
+            <h4>Entry #${entryCounter}</h4>
+            <button class="remove-entry" onclick="removeScaffoldingEntry(${entryCounter})">×</button>
+
+            <label for="area-${entryCounter}">Area</label>
+            <select id="area-${entryCounter}" class="area-select" data-field="AreaID" required></select>
+
+            <label for="jobtype-${entryCounter}">Job Type</label>
+            <select id="jobtype-${entryCounter}" data-field="JobType" required>
+                <option value="">-- Select Type --</option>
+                <option value="Erection">Erection</option>
+                <option value="Dismantling">Dismantling</option>
+            </select>
+
+            <label for="l-${entryCounter}">Length (L in m)</label>
+            <input type="number" id="l-${entryCounter}" data-field="L" step="0.01" min="0" value="${data.L || ''}" required>
+            
+            <label for="w-${entryCounter}">Width (W in m)</label>
+            <input type="number" id="w-${entryCounter}" data-field="W" step="0.01" min="0" value="${data.W || ''}" required>
+
+            <label for="h-${entryCounter}">Height (H in m)</label>
+            <input type="number" id="h-${entryCounter}" data-field="H" step="0.01" min="0" value="${data.H || ''}" required>
+
+            <label for="q-${entryCounter}">Quantity (Q)</label>
+            <input type="number" id="q-${entryCounter}" data-field="Q" step="1" min="1" value="${data.Q || ''}" required>
+
+            <label for="manpower-${entryCounter}">Manpower</label>
+            <input type="number" id="manpower-${entryCounter}" data-field="Manpower" step="1" min="1" value="${data.Manpower || ''}" required>
+            
+            <label for="entry-notes-${entryCounter}">Notes (Optional)</label>
+            <input type="text" id="entry-notes-${entryCounter}" data-field="Notes" value="${data.Notes || ''}">
+        `;
+        container.appendChild(entryDiv);
+        loadAreas();
+        
+        if (data.AreaID) getEl(`area-${entryCounter}`).value = data.AreaID;
+        if (data.JobType) getEl(`jobtype-${entryCounter}`).value = data.JobType;
+    }
+
+    function removeScaffoldingEntry(id) {
+        const entryDiv = document.querySelector(`.scaffolding-entry[data-id="${id}"]`);
+        if (entryDiv) {
+            entryDiv.remove();
+        }
+    }
+    
+    let otCounter = 0;
+    function addOtWorker(data = {}) {
+        otCounter++;
+        const container = getEl('ot-workers-container');
+        const otDiv = document.createElement('div');
+        otDiv.className = 'ot-worker-box';
+        otDiv.dataset.id = otCounter;
+        
+        otDiv.innerHTML = `
+            <select id="ot-worker-${otCounter}" class="ot-worker-select" data-field="EmpCode" required></select>
+            <input type="number" id="ot-hours-${otCounter}" data-field="OT_Hours" placeholder="OT Hours" step="0.5" min="0.5" value="${data.OT_Hours || ''}" required>
+            <button onclick="removeOtWorker(${otCounter})" style="background-color: #dc3545; width: 40px; padding: 0; margin: 0; flex-shrink: 0;">-</button>
+        `;
+        container.appendChild(otDiv);
+        loadWorkers('checkout');
+        
+        if (data.EmpCode) getEl(`ot-worker-${otCounter}`).value = data.EmpCode;
+    }
+    
+    function removeOtWorker(id) {
+        const otDiv = document.querySelector(`.ot-worker-box[data-id="${id}"]`);
+        if (otDiv) {
+            otDiv.remove();
+        }
+    }
+
+
+    // --- Submission Logic ---
+    function validateForm(flow) {
+        let isValid = true;
+        let errorMsg = '';
+        
+        const projSelect = getEl(`${flow}-project`);
+        if (!projSelect.value) {
+            errorMsg += 'Please select a Project.\n';
+            isValid = false;
+        }
+
+        if (flow === 'check-in') {
+            if (!getEl('checkin-worker').value) {
+                errorMsg += 'Please select a Worker.\n';
+                isValid = false;
+            }
+        } else if (flow === 'check-out') {
+            const entries = Array.from(document.querySelectorAll('.scaffolding-entry'));
+            if (entries.length === 0) {
+                errorMsg += 'Please add at least one Scaffolding Entry.\n';
+                isValid = false;
+            }
+            
+            entries.forEach((entry, index) => {
+                const id = entry.dataset.id;
+                const area = getEl(`area-${id}`).value;
+                const jobType = getEl(`jobtype-${id}`).value;
+                const L = parseFloat(getEl(`l-${id}`).value);
+                const W = parseFloat(getEl(`w-${id}`).value);
+                const H = parseFloat(getEl(`h-${id}`).value);
+                const Q = parseInt(getEl(`q-${id}`).value);
+                const Manpower = parseInt(getEl(`manpower-${id}`).value);
+
+                if (!area || !jobType || isNaN(L) || L <= 0 || isNaN(W) || W <= 0 || isNaN(H) || H <= 0 || isNaN(Q) || Q < 1 || isNaN(Manpower) || Manpower < 1) {
+                    errorMsg += `Entry #${index + 1}: Check all Area, Job Type, L, W, H (must be > 0), Q (must be >= 1) and Manpower (must be >= 1) fields.\n`;
+                    isValid = false;
+                }
+            });
+            
+            const otEntries = Array.from(document.querySelectorAll('.ot-worker-box'));
+            otEntries.forEach((otEntry, index) => {
+                 const id = otEntry.dataset.id;
+                 const empCode = getEl(`ot-worker-${id}`).value;
+                 const otHours = parseFloat(getEl(`ot-hours-${id}`).value);
+                 
+                 if (!empCode || isNaN(otHours) || otHours <= 0) {
+                     errorMsg += `OT Worker #${index + 1}: Select a Worker and enter valid OT Hours (must be > 0).\n`;
+                     isValid = false;
+                 }
             });
         }
         
-        // --- CHECK IN SUBMIT ---
-        async function submitCheckIn() {
-            const proj = document.getElementById('ci-project').value;
-            const checks = document.querySelectorAll('#ci-worker-list input:checked');
-            if (checks.length === 0) { notify("Select workers"); return; }
-            
-            const selectedWorkers = Array.from(checks).map(c => ({ name: c.dataset.name, code: c.value }));
-            document.getElementById('ci-loader').classList.remove('hidden');
-            
-            try {
-                const res = await postData({ action: "submitCheckIn", supervisor: currentUser, project: proj, workers: selectedWorkers });
-                
-                if (res.status === "error") {
-                     notify("Check-In Error: " + res.message);
-                } else {
-                    const date = new Date().toLocaleDateString();
-                    let txt = `DAILY CHECK-IN\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\nWorker Count: ${selectedWorkers.length}`;
-                    showReport(txt);
-                }
-            } catch(e) { notify("Error during Check-In."); console.error(e); }
-            document.getElementById('ci-loader').classList.add('hidden');
+        const errorEl = getEl(flow === 'check-in' ? 'checkin-error' : 'checkout-error');
+        if (!isValid) {
+            errorEl.innerText = errorMsg;
+            show(errorEl.id);
+        } else {
+            hide(errorEl.id);
         }
+        return isValid;
+    }
 
-        // --- CHECK OUT: MEASUREMENTS ---
-        function addMeasurementRow() {
-            const div = document.createElement('div');
-            div.className = "measurement-row bg-white p-2 rounded shadow border mb-2";
-            let areaOpts = appData.areas.map(a => `<option value="${a}">${a}</option>`).join('');
-
-            div.innerHTML = `
-                <div class="flex justify-between mb-2">
-                    <select class="text-xs border p-1 w-1/2 mr-1 area-val bg-gray-50">${areaOpts}</select>
-                    <select class="text-xs border p-1 w-1/3 type-val bg-gray-50" onchange="calculateTotals()">
-                        <option value="erection">Erec</option>
-                        <option value="dismantling">Dism</option>
-                    </select>
-                    <button onclick="this.closest('.measurement-row').remove(); calculateTotals()" class="text-red-500"><i class="fas fa-trash"></i></button>
-                </div>
-                <div class="grid grid-cols-4 gap-1">
-                    <input type="number" placeholder="L" class="text-xs border p-1 text-center val-l" oninput="calculateTotals()">
-                    <input type="number" placeholder="W" class="text-xs border p-1 text-center val-w" oninput="calculateTotals()">
-                    <input type="number" placeholder="H" class="text-xs border p-1 text-center val-h" oninput="calculateTotals()">
-                    <input type="number" placeholder="Q" class="text-xs border p-1 text-center val-q bg-yellow-50" oninput="calculateTotals()">
-                </div>
-            `;
-            document.getElementById('measurement-container').appendChild(div);
-        }
-
-        // --- CHECK OUT: CALCULATIONS & PACKAGING ---
-        function getCheckoutData() {
-            let totErec = 0, totDism = 0;
-            let measurementList = [];
-
-            // 1. Gather Measurement Details
-            document.querySelectorAll('.measurement-row').forEach(row => {
-                const area = row.querySelector('.area-val').value;
-                const type = row.querySelector('.type-val').value;
-                const l = parseFloat(row.querySelector('.val-l').value) || 0;
-                const w = parseFloat(row.querySelector('.val-w').value) || 0;
-                const h = parseFloat(row.querySelector('.val-h').value) || 0;
-                const q = parseFloat(row.querySelector('.val-q').value) || 0;
-
-                let vol = l * w * h * q;
-                
-                measurementList.push({
-                    area: area, type: type, l: l, w: w, h: h, q: q, vol: (type === 'dismantling' ? vol/2 : vol)
-                });
-
-                if (type === 'erection') totErec += vol;
-                else totDism += (vol / 2); 
-            });
-
-            // 2. Gather OT Details
-            const otChecks = document.querySelectorAll('#ot-worker-list input:checked');
-            const otDetails = Array.from(otChecks).map(c => ({
-                name: c.dataset.name,
-                code: c.value
-            }));
-
-            // 3. Totals
-            const manpower = parseInt(document.getElementById('co-manpower').value) || 0;
-            // Uses the globally updated currentShiftHours
-            const totalManhours = (manpower * currentShiftHours) + otDetails.length; 
+    function preparePayload(flow) {
+        const projectId = getEl(`${flow}-project`).value;
+        const project = state.projects.find(p => p.ProjectID === projectId);
+        
+        const basePayload = {
+            SupervisorUsername: state.supervisor.Username,
+            SupervisorName: state.supervisor.SupervisorName,
+            ProjectID: projectId,
+            ProjectName: project ? project.ProjectName : 'Unknown',
+            ShiftHours: project ? parseInt(project.ShiftHours) : 8,
+        };
+        
+        if (flow === 'check-in') {
+            const workerSelect = getEl('checkin-worker');
+            const empCode = workerSelect.value;
+            const workerName = workerSelect.options[workerSelect.selectedIndex].dataset.workerName || 'Unknown';
             
-            const totalVolume = totErec + totDism;
-            const prod = totalManhours > 0 ? (totalVolume / totalManhours).toFixed(2) : 0;
-
             return {
-                summary: { totErec: totErec.toFixed(2), totDism: totDism.toFixed(2), manpower, otCount: otDetails.length, totalManhours, prod },
-                measurements: measurementList,
-                otDetails: otDetails
+                ...basePayload,
+                EmpCode: empCode,
+                WorkerName: workerName,
+                Notes: getEl('checkin-notes').value.trim(),
+            };
+        } else if (flow === 'check-out') {
+            const entries = Array.from(document.querySelectorAll('.scaffolding-entry')).map(entry => {
+                const id = entry.dataset.id;
+                const areaSelect = getEl(`area-${id}`);
+                return {
+                    AreaID: areaSelect.value,
+                    AreaName: areaSelect.options[areaSelect.selectedIndex].dataset.areaName || 'Unknown',
+                    JobType: getEl(`jobtype-${id}`).value,
+                    L: parseFloat(getEl(`l-${id}`).value),
+                    W: parseFloat(getEl(`w-${id}`).value),
+                    H: parseFloat(getEl(`h-${id}`).value),
+                    Q: parseInt(getEl(`q-${id}`).value),
+                    Manpower: parseInt(getEl(`manpower-${id}`).value),
+                    Notes: getEl(`entry-notes-${id}`).value.trim(),
+                };
+            });
+            
+            const otWorkers = Array.from(document.querySelectorAll('.ot-worker-box')).map(otBox => {
+                const id = otBox.dataset.id;
+                const workerSelect = getEl(`ot-worker-${id}`);
+                const empCode = workerSelect.value;
+                const workerName = workerSelect.options[workerSelect.selectedIndex].dataset.workerName || 'Unknown';
+                return {
+                    EmpCode: empCode,
+                    WorkerName: workerName,
+                    OT_Hours: parseFloat(getEl(`ot-hours-${id}`).value),
+                };
+            });
+            
+            return {
+                ...basePayload,
+                Entries: entries,
+                OTWorkers: otWorkers,
+                ReportNotes: getEl('checkout-notes').value.trim(),
             };
         }
+    }
+    
+    let currentPayload = null;
 
-        function calculateTotals() {
-            // Ensure shift hours are current before calculation
-            updateShiftHours(); 
-            const data = getCheckoutData();
-            document.getElementById('disp-erection').innerText = data.summary.totErec;
-            document.getElementById('disp-dismantling').innerText = data.summary.totDism;
-            document.getElementById('disp-manhours').innerText = data.summary.totalManhours;
-            document.getElementById('disp-prod').innerText = data.summary.prod;
-        }
+    function confirmSubmission(flow) {
+        if (!validateForm(flow)) return;
 
-        async function submitCheckOut() {
-            const proj = document.getElementById('co-project').value;
-            const data = getCheckoutData(); 
-
-            if (!proj) {
-                 notify("Please select a project.");
-                 return;
-            }
-            if (data.summary.manpower <= 0) {
-                 notify("Please enter Total Manpower (must be > 0).");
-                 return;
-            }
-            if (!currentUser) {
-                notify("Login state lost. Please log in again.");
-                return;
-            }
-
-            document.getElementById('co-loader').classList.remove('hidden');
-
-            try {
-                const payload = {
-                    action: "submitCheckOut",
-                    supervisor: currentUser,
-                    project: proj,
-                    summary: data.summary,          
-                    measurements: data.measurements,
-                    otDetails: data.otDetails       
-                };
-
-                const res = await postData(payload);
-
-                if (res.status === "error") {
-                    notify("Submission Error: " + res.message);
-                } else {
-                    const date = new Date().toLocaleDateString();
-                    const txt = `DAILY REPORT\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\n\nErection: ${data.summary.totErec}\nDismantling: ${data.summary.totDism}\nManpower: ${data.summary.manpower}\nOT Staff Count: ${data.summary.otCount}\nManhours: ${data.summary.totalManhours}\nProductivity: ${data.summary.prod}`;
-                    showReport(txt);
-                }
-            } catch(e) { notify("Fatal error submitting report. Check console."); console.error(e); }
+        currentPayload = preparePayload(flow);
+        const detailsEl = getEl('confirmation-details');
+        
+        let html = '';
+        if (flow === 'check-in') {
+            const workerSelect = getEl('checkin-worker');
+            const workerName = workerSelect.options[workerSelect.selectedIndex].text;
+            html = `
+                <p><strong>Flow:</strong> Worker Check-In</p>
+                <p><strong>Supervisor:</strong> ${currentPayload.SupervisorName}</p>
+                <p><strong>Project:</strong> ${currentPayload.ProjectName}</p>
+                <p><strong>Worker:</strong> ${workerName}</p>
+                <p><strong>Notes:</strong> ${currentPayload.Notes || 'N/A'}</p>
+            `;
+        } else if (flow === 'check-out') {
+            const totalManpower = currentPayload.Entries.reduce((sum, entry) => sum + entry.Manpower, 0);
+            const totalOTHours = currentPayload.OTWorkers.reduce((sum, ot) => sum + ot.OT_Hours, 0);
             
-            document.getElementById('co-loader').classList.add('hidden');
+            html = `
+                <p><strong>Flow:</strong> Daily Scaffolding Report (Check-Out)</p>
+                <p><strong>Supervisor:</strong> ${currentPayload.SupervisorName}</p>
+                <p><strong>Project:</strong> ${currentPayload.ProjectName}</p>
+                <p><strong>Total Scaffolding Entries:</strong> ${currentPayload.Entries.length}</p>
+                <p><strong>Total Manpower (Day):</strong> ${totalManpower}</p>
+                <p><strong>Total OT Hours:</strong> ${totalOTHours} hours</p>
+                <p><strong>Report Notes:</strong> ${currentPayload.ReportNotes || 'N/A'}</p>
+                
+                <h4>Entries Summary:</h4>
+                <ul style="list-style-type: none; padding-left: 0;">
+                ${currentPayload.Entries.map((entry, i) => `
+                    <li><strong>${i + 1}.</strong> ${entry.JobType} in ${entry.AreaName}: L${entry.L} x W${entry.W} x H${entry.H} x Q${entry.Q} (Manpower: ${entry.Manpower})</li>
+                `).join('')}
+                </ul>
+            `;
+        }
+        
+        detailsEl.innerHTML = html;
+        getEl('confirm-submit-btn').dataset.flow = flow;
+        showFlow('confirmation-screen');
+    }
+    
+    function goBackToForm() {
+        if (getEl('confirm-submit-btn').dataset.flow === 'check-in') {
+            showFlow('check-in');
+        } else {
+            showFlow('check-out');
+        }
+    }
+
+    function finalSubmit() {
+        const flow = getEl('confirm-submit-btn').dataset.flow;
+        hide('confirmation-screen');
+        show('loading');
+
+        if (flow === 'check-in') {
+            google.script.run
+                .withSuccessHandler(onSubmissionSuccess)
+                .withFailureHandler(onServerFailure)
+                .submitCheckIn(currentPayload);
+        } else if (flow === 'check-out') {
+            google.script.run
+                .withSuccessHandler(onSubmissionSuccess)
+                .withFailureHandler(onServerFailure)
+                .submitCheckOut(currentPayload);
+        }
+    }
+    
+    function onSubmissionSuccess(result) {
+        hide('loading');
+        
+        let message = '';
+        if (getEl('confirm-submit-btn').dataset.flow === 'check-in') {
+            message = `Worker ${result.WorkerName} (${result.EmpCode}) successfully checked in.`;
+        } else {
+            message = `Daily report for Project ${result.ProjectName} successfully submitted with ${result.TotalEntries} scaffolding entries.`;
         }
 
-        // --- REPORTING ---
-        function showReport(txt) {
-            document.getElementById('report-text').value = txt;
-            document.getElementById('report-modal').classList.remove('hidden');
+        getEl('success-message').innerText = message;
+        getEl('generated-report').innerText = result.ReportText;
+        getEl('whatsapp-share-btn').dataset.reportText = result.ReportText;
+        
+        if (navigator.share) {
+             show('whatsapp-share-btn');
+        } else {
+             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+             if (isMobile) {
+                show('whatsapp-share-btn');
+             } else {
+                 hide('whatsapp-share-btn');
+             }
         }
-        function closeReport() { document.getElementById('report-modal').classList.add('hidden'); }
-        function copyReport() {
-            const txt = document.getElementById('report-text');
-            txt.select();
-            document.execCommand("copy");
-            notify("Copied");
+        
+        showFlow('success-screen');
+    }
+    
+    // --- Post-Submission Actions ---
+    function copyReport() {
+        const reportText = getEl('generated-report').innerText;
+        navigator.clipboard.writeText(reportText).then(() => {
+            alert('Report copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert('Could not copy report. Please copy manually.');
+        });
+    }
+
+    function shareToWhatsApp() {
+        const reportText = getEl('whatsapp-share-btn').dataset.reportText;
+        const encodedText = encodeURIComponent(reportText);
+        const url = `https://wa.me/?text=${encodedText}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'Scaffolding Daily Report',
+                text: reportText,
+            }).catch(error => {
+                if (error.name !== 'AbortError') {
+                    console.error('Error sharing:', error);
+                    window.open(url, '_blank');
+                }
+            });
+        } else {
+            window.open(url, '_blank');
         }
-        function shareWhatsapp() {
-            const txt = document.getElementById('report-text').value;
-            window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
-        }
-    </script>
+    }
+    
+    // --- App Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+        showFlow('login-screen');
+    });
+
+</script>
 </body>
 </html>
