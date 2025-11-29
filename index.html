@@ -4,8 +4,11 @@
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Worker Attendance & Scaffolding Report</title>
+    
     <script>
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec"; // **REPLACE THIS URL**
+        // *** CRITICAL: REPLACE THIS PLACEHOLDER URL ***
+        // Use the exact URL copied from your deployed Google Apps Script Web App.
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec"; 
     </script>
     <style>
         /* Mobile-First Base Styles */
@@ -234,7 +237,7 @@
         projects: [],
         workers: [],
         areas: [],
-        currentFlow: null, // 'check-in' or 'check-out'
+        currentFlow: null,
         failedLoginAttempts: 0,
         MAX_LOGIN_ATTEMPTS: 5,
     };
@@ -262,14 +265,15 @@
             }
         } catch (error) {
             console.error('Fetch Error:', error);
-            throw new Error('Network or Server communication error: ' + error.message);
+            // This is the error seen on the client side:
+            throw new Error('Network or Server communication error: Failed to fetch/communicate.');
         }
     }
     
     function onServerFailure(error) {
         hide('loading');
         console.error('Apps Script Error:', error);
-        const errorEl = state.currentFlow === 'login-screen' ? getEl('login-error') : 
+        const errorEl = (state.currentFlow === 'login-screen' || state.currentFlow === 'login') ? getEl('login-error') : 
                         state.currentFlow === 'check-in' ? getEl('checkin-error') : 
                         getEl('checkout-error');
                         
@@ -315,6 +319,7 @@
     // --- Authentication ---
     
     async function loadSupervisorDropdown() {
+        state.currentFlow = 'login'; // Temp set to handle error reporting
         const select = getEl('supervisor-select');
         select.innerHTML = '<option value="">-- Loading Supervisors --</option>';
         try {
@@ -731,7 +736,8 @@
             let result;
             if (flow === 'check-in') {
                 result = await apiCall('submit_checkin', currentPayload);
-            } else if (flow === 'check-out') {
+            } else if (flow === 'submit_checkout') {
+                // Use submit_checkout flow name
                 result = await apiCall('submit_checkout', currentPayload);
             }
             onSubmissionSuccess(result);
