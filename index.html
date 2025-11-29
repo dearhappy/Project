@@ -1,567 +1,406 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Attendance & Scaffolding Tracker</title>
-<style>
-  :root{
-    --bg:#f7f8fb; --card:#ffffff; --accent:#0b78d1; --danger:#d0393e; --muted:#6b7280;
-  }
-  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-  body{background:var(--bg);color:#111;}
-  .app{max-width:720px;margin:0 auto;padding:12px;}
-  header{display:flex;align-items:center;justify-content:space-between;padding:12px 0;}
-  h1{font-size:1.1rem;margin:0;}
-  .sup-info{font-size:.9rem;color:var(--muted);}
-  main{display:block;gap:12px;}
-  .card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
-  .big-btn{display:block;width:100%;padding:14px;border-radius:10px;border:0;font-size:1rem;background:var(--accent);color:#fff}
-  .flow-btn{display:flex;gap:8px;align-items:center;padding:12px;border-radius:10px;border:1px solid #e6e9ee;background:#fff}
-  label{display:block;font-size:.85rem;margin-bottom:6px;color:var(--muted);}
-  select,input[type="text"],input[type="number"],textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ee;font-size:1rem;background:transparent;box-sizing:border-box}
-  .row{display:flex;gap:8px}
-  .col{flex:1;}
-  .muted{color:var(--muted);font-size:.9rem}
-  .small{font-size:.85rem}
-  .link-btn{background:transparent;border:0;color:var(--accent);padding:0;font-size:.95rem}
-  .danger{background:var(--danger);color:#fff;border:0;padding:10px;border-radius:8px}
-  .inline-error{color:var(--danger);font-size:.85rem;margin-top:6px}
-  .entries{display:flex;flex-direction:column;gap:10px}
-  .entry{padding:8px;border-radius:8px;border:1px dashed #e6e9ee}
-  .actions{display:flex;gap:8px;margin-top:12px}
-  .report{white-space:pre-wrap;background:#f1f5f9;padding:12px;border-radius:8px;font-family:monospace;font-size:.95rem}
-  footer{font-size:.8rem;color:var(--muted);text-align:center;padding:18px 0;}
-  @media(min-width:600px){h1{font-size:1.25rem}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mobile Scaffolding Tracker</title>
+  <style>
+    :root{--accent:#0b7;--muted:#666}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;padding:0;background:#f7f8fa;color:#111}
+    header{background:#fff;padding:14px 16px;border-bottom:1px solid #e6e9ee;display:flex;align-items:center;gap:12px}
+    header h1{font-size:16px;margin:0}
+    .container{padding:12px;max-width:760px;margin:0 auto}
+    .card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 1px 0 rgba(0,0,0,0.04)}
+    label{display:block;font-size:13px;margin-bottom:6px;color:#333}
+    input[type="text"],input[type="password"],select,input[type="number"]{
+      width:100%;padding:10px;border:1px solid #d6dbe6;border-radius:6px;font-size:15px;box-sizing:border-box
+    }
+    button{background:var(--accent);color:#002b; border:0;padding:10px 14px;border-radius:8px;font-size:15px;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    .row{display:flex;gap:8px}
+    .row .flex{flex:1}
+    .link-btn{background:transparent;color:var(--accent);border:0;padding:8px;font-size:14px;cursor:pointer}
+    .small{font-size:13px;padding:8px}
+    .entry{border:1px dashed #e2e6ee;padding:8px;border-radius:8px;margin-bottom:8px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    @media(min-width:600px){header h1{font-size:18px}}
+  </style>
 </head>
 <body>
-<div class="app" id="app">
   <header>
-    <div>
-      <h1>Attendance & Scaffolding Tracker</h1>
-      <div id="supInfo" class="sup-info">Not signed in</div>
-    </div>
-    <div>
-      <button id="signOutBtn" class="link-btn" style="display:none">Sign out</button>
-    </div>
+    <h1 id="appTitle">Scaffold Tracker</h1>
+    <div id="supervisorName" style="margin-left:auto;color:#555;font-size:13px"></div>
   </header>
 
-  <main>
+  <div class="container">
     <div id="loginCard" class="card">
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label>Supervisor Username</label>
-        <input id="username" type="text" inputmode="text" autocomplete="username" />
-        <label>Passcode</label>
-        <input id="passcode" type="password" inputmode="numeric" autocomplete="current-password" />
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="loginBtn" class="big-btn">Sign In</button>
-        </div>
-        <div id="loginError" class="inline-error" style="display:none"></div>
+      <label for="username">Supervisor Username</label>
+      <input id="username" type="text" inputmode="text" autocomplete="username" />
+      <label for="passcode">Passcode</label>
+      <input id="passcode" type="password" inputmode="numeric" autocomplete="current-password" />
+      <div style="margin-top:8px" class="actions">
+        <button id="btnLogin">Login</button>
+        <button id="btnInit" class="link-btn">Init Sheets (admin)</button>
       </div>
+      <div id="loginMsg" class="muted" style="margin-top:8px"></div>
     </div>
 
-    <div id="landing" class="card" style="display:none">
-      <div class="muted small">Choose flow</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-        <button id="openCheckIn" class="flow-btn">Check-In (Quick)</button>
-        <button id="openCheckOut" class="flow-btn">Check-Out / Daily Report</button>
-      </div>
-    </div>
-
-    <!-- Check-In Flow -->
-    <div id="checkInCard" class="card" style="display:none">
-      <div class="muted small">Check-In</div>
-      <div style="margin-top:8px">
-        <label>Project</label>
-        <select id="ciProject"></select>
-        <label>Worker</label>
-        <select id="ciWorker"></select>
-        <label>Notes (optional)</label>
-        <textarea id="ciNotes" rows="2"></textarea>
-        <div class="actions">
-          <button id="ciConfirm" class="big-btn">Submit Check-In</button>
-          <button id="ciCancel" class="link-btn">Cancel</button>
-        </div>
-        <div id="ciError" class="inline-error" style="display:none"></div>
-      </div>
-      <div id="ciResult" style="display:none;margin-top:10px">
-        <div class="report" id="ciReportText"></div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="ciCopy" class="big-btn" style="flex:1">Copy Report</button>
-          <button id="ciShare" class="big-btn" style="flex:1;background:#25D366">Share WhatsApp</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Check-Out Flow -->
-    <div id="checkOutCard" class="card" style="display:none">
-      <div class="muted small">Check-Out / Daily Report</div>
-      <div style="margin-top:8px">
-        <label>Project</label>
-        <select id="coProject"></select>
-
-        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-          <div class="muted small">Entries</div>
-          <button id="addEntry" class="link-btn" style="margin-left:auto">+ Add Entry</button>
-        </div>
-
-        <div id="entriesContainer" class="entries" style="margin-top:8px"></div>
-
-        <div style="margin-top:8px">
-          <label>Total Manpower</label>
-          <input id="totalManpower" type="number" min="0" step="1" />
-          <label>Total OT Hours</label>
-          <input id="totalOTHours" type="number" min="0" step="0.1" />
-        </div>
-
-        <div style="margin-top:8px">
-          <label>Notes (optional)</label>
-          <textarea id="coNotes" rows="2"></textarea>
-        </div>
-
-        <div class="actions">
-          <button id="coConfirm" class="big-btn">Submit Daily Report</button>
-          <button id="coCancel" class="link-btn">Cancel</button>
-        </div>
-        <div id="coError" class="inline-error" style="display:none"></div>
+    <div id="mainUI" style="display:none">
+      <div class="card">
+        <label for="projectSelect">Project</label>
+        <select id="projectSelect"></select>
       </div>
 
-      <div id="coResult" style="display:none;margin-top:10px">
-        <div class="report" id="coReportText"></div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="coCopy" class="big-btn" style="flex:1">Copy Report</button>
-          <button id="coShare" class="big-btn" style="flex:1;background:#25D366">Share WhatsApp</button>
+      <div class="card">
+        <div style="display:flex;gap:8px">
+          <button id="showCheckIn" class="small">Check-In</button>
+          <button id="showCheckOut" class="small">Check-Out</button>
+        </div>
+      </div>
+
+      <div id="checkInCard" class="card" style="display:none">
+        <h3>Check-In</h3>
+        <label for="workerSelect">Worker</label>
+        <select id="workerSelect"></select>
+        <label for="checkinNotes">Notes (optional)</label>
+        <input id="checkinNotes" type="text" />
+        <div style="margin-top:8px" class="actions">
+          <button id="submitCheckIn">Submit Check-In</button>
+        </div>
+      </div>
+
+      <div id="checkOutCard" class="card" style="display:none">
+        <h3>Check-Out / Scaffolding Entries</h3>
+        <div id="entries"></div>
+        <div style="margin-top:8px" class="actions">
+          <button id="addEntry" class="small">Add Entry</button>
+          <button id="submitCheckOut" class="small">Submit All</button>
+        </div>
+        <div id="totals" class="muted" style="margin-top:8px"></div>
+      </div>
+
+      <div id="confirmCard" class="card" style="display:none">
+        <h3>Report</h3>
+        <pre id="reportText" style="white-space:pre-wrap"></pre>
+        <div class="actions" style="margin-top:8px">
+          <button id="copyReport" class="small">Copy Report</button>
+          <button id="shareWhatsApp" class="small">Share to WhatsApp</button>
+          <button id="done" class="small">Done</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <div id="loading" class="card" style="display:none">
-      <div class="muted">Loading…</div>
-    </div>
+  <script>
+    // CONFIG: replace with your deployed Apps Script web app URL if hosting on GitHub Pages
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
 
-  </main>
+    // Helper: call backend via google.script.run (if available) or fetch to web app
+    function apiCall(action, payload = {}) {
+      payload.action = action;
+      // If running inside Apps Script HTML sandbox:
+      if (window.google && google.script && google.script.run) {
+        return new Promise((resolve, reject) => {
+          google.script.run.withSuccessHandler(resolve).withFailureHandler(err => reject(err)).apiProxy(payload);
+        });
+      } else {
+        if (!WEB_APP_URL || WEB_APP_URL.startsWith('REPLACE_WITH')) {
+          return Promise.reject('No web app URL configured. Set WEB_APP_URL in index.html or open this file via Apps Script HTML service.');
+        }
+        return fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        }).then(r => r.json());
+      }
+    }
 
-  <footer>
-    Tips: Use small taps, choose project first. After deploying Apps Script, set WEB_APP_URL in the top of this file (see README).
-  </footer>
-</div>
+    // UI state
+    let currentSupervisor = null;
+    let projects = [];
+    let workers = {};
+    let otWorkersCache = {};
+    let MAX_OT_BOXES = 5;
 
-<script>
-/*
-  index.html (frontend)
-  - Configure WEB_APP_URL after deploying your Apps Script web app (see README)
-  - The frontend uses simple fetch() to call the web app endpoints.
-*/
+    // Elements
+    const loginCard = document.getElementById('loginCard');
+    const mainUI = document.getElementById('mainUI');
+    const usernameEl = document.getElementById('username');
+    const passcodeEl = document.getElementById('passcode');
+    const btnLogin = document.getElementById('btnLogin');
+    const btnInit = document.getElementById('btnInit');
+    const loginMsg = document.getElementById('loginMsg');
+    const supervisorNameEl = document.getElementById('supervisorName');
+    const projectSelect = document.getElementById('projectSelect');
+    const workerSelect = document.getElementById('workerSelect');
+    const showCheckIn = document.getElementById('showCheckIn');
+    const showCheckOut = document.getElementById('showCheckOut');
+    const checkInCard = document.getElementById('checkInCard');
+    const checkOutCard = document.getElementById('checkOutCard');
+    const submitCheckInBtn = document.getElementById('submitCheckIn');
+    const checkinNotes = document.getElementById('checkinNotes');
+    const entriesDiv = document.getElementById('entries');
+    const addEntryBtn = document.getElementById('addEntry');
+    const submitCheckOutBtn = document.getElementById('submitCheckOut');
+    const totalsDiv = document.getElementById('totals');
+    const confirmCard = document.getElementById('confirmCard');
+    const reportTextEl = document.getElementById('reportText');
+    const copyReportBtn = document.getElementById('copyReport');
+    const shareWhatsAppBtn = document.getElementById('shareWhatsApp');
+    const doneBtn = document.getElementById('done');
 
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec"; // e.g. https://script.google.com/macros/s/XXX/exec
-// End user: replace above with published Apps Script URL.
-
-const qs = s=>document.querySelector(s);
-
-let state = {
-  supervisor: null, // {Username, SupervisorName, Email}
-  projects: [],
-  workersCache: {}, // projectId -> workers[]
-  areasCache: {},   // projectId -> areas[]
-};
-
-function show(el){ el.style.display = ""; }
-function hide(el){ el.style.display = "none"; }
-function setText(el,txt){ el.textContent = txt; }
-
-async function apiGet(params){
-  // params is an object of query parameters
-  const url = new URL(WEB_APP_URL);
-  Object.keys(params||{}).forEach(k=>url.searchParams.set(k, params[k]));
-  const res = await fetch(url.toString());
-  const js = await res.json();
-  if(js.error) throw new Error(js.error);
-  return js;
-}
-
-async function apiPost(action, payload){
-  const url = new URL(WEB_APP_URL);
-  url.searchParams.set("action", action);
-  const res = await fetch(url.toString(), {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(payload)
-  });
-  const js = await res.json();
-  if(js.error) throw new Error(js.error);
-  return js;
-}
-
-/* UI helpers */
-function populateSelect(selectEl, list, valueKey, labelFn, includeBlank){
-  selectEl.innerHTML = "";
-  if(includeBlank) selectEl.appendChild(new Option("-- select --",""));
-  list.forEach(it=>{
-    const opt = new Option(labelFn(it), it[valueKey]);
-    selectEl.appendChild(opt);
-  });
-}
-
-/* Login */
-qs("#loginBtn").addEventListener("click", login);
-qs("#signOutBtn").addEventListener("click", signOut);
-
-async function login(){
-  const username = qs("#username").value.trim();
-  const passcode = qs("#passcode").value.trim();
-  qs("#loginError").style.display = "none";
-  if(!username || !passcode){
-    qs("#loginError").textContent = "Enter username and passcode";
-    qs("#loginError").style.display = "";
-    return;
-  }
-  try{
-    show(qs("#loading"));
-    const resp = await apiPost("verifyLogin",{username, passcode});
-    state.supervisor = resp.supervisor;
-    sessionStorage.setItem("sup", JSON.stringify(state.supervisor));
-    afterLogin();
-    await loadProjects();
-  }catch(err){
-    qs("#loginError").textContent = err.message;
-    qs("#loginError").style.display = "";
-  }finally{ hide(qs("#loading")); }
-}
-
-function signOut(){
-  state.supervisor = null;
-  sessionStorage.removeItem("sup");
-  qs("#supInfo").textContent = "Not signed in";
-  hide(qs("#landing"));
-  hide(qs("#checkInCard"));
-  hide(qs("#checkOutCard"));
-  show(qs("#loginCard"));
-  hide(qs("#signOutBtn"));
-  qs("#username").value=""; qs("#passcode").value="";
-}
-
-/* After login state */
-function afterLogin(){
-  const s = state.supervisor;
-  qs("#supInfo").textContent = `${s.SupervisorName} (${s.Username})`;
-  show(qs("#signOutBtn"));
-  hide(qs("#loginCard"));
-  show(qs("#landing"));
-  // restore last chosen project if any
-}
-
-/* Load projects */
-async function loadProjects(){
-  try{
-    show(qs("#loading"));
-    const resp = await apiGet({action:"getProjects"});
-    state.projects = resp.projects || [];
-    // populate project selects
-    const ciProject = qs("#ciProject");
-    const coProject = qs("#coProject");
-    populateSelect(ciProject, state.projects, "ProjectID", p=>`${p.ProjectName} (${p.ProjectID})`, true);
-    populateSelect(coProject, state.projects, "ProjectID", p=>`${p.ProjectName} (${p.ProjectID})`, true);
-  }catch(err){
-    alert("Failed to load projects: " + err.message);
-  }finally{ hide(qs("#loading")); }
-}
-
-/* Landing actions */
-qs("#openCheckIn").addEventListener("click",()=>{
-  hide(qs("#landing"));
-  show(qs("#checkInCard"));
-  qs("#ciResult").style.display="none";
-});
-qs("#openCheckOut").addEventListener("click",()=>{
-  hide(qs("#landing"));
-  show(qs("#checkOutCard"));
-  qs("#coResult").style.display="none";
-});
-
-/* Check-In logic */
-qs("#ciProject").addEventListener("change", async function(){
-  const pid = this.value;
-  if(!pid) return;
-  await loadWorkersForProject(pid);
-  populateSelect(qs("#ciWorker"), state.workersCache[pid]||[], "EmpCode", w=>`${w.WorkerName} (${w.EmpCode})`, true);
-});
-
-async function loadWorkersForProject(pid){
-  if(state.workersCache[pid]) return;
-  try{
-    const resp = await apiGet({action:"getWorkers", projectId:pid});
-    state.workersCache[pid] = resp.workers || [];
-  }catch(err){
-    alert("Failed to load workers: " + err.message);
-  }
-}
-
-qs("#ciCancel").addEventListener("click", ()=>{
-  hide(qs("#checkInCard")); show(qs("#landing"));
-});
-
-qs("#ciConfirm").addEventListener("click", async ()=>{
-  qs("#ciError").style.display = "none";
-  const projectId = qs("#ciProject").value;
-  const empCode = qs("#ciWorker").value;
-  const notes = qs("#ciNotes").value.trim();
-  if(!projectId || !empCode){
-    qs("#ciError").textContent = "Select project and worker.";
-    qs("#ciError").style.display = "";
-    return;
-  }
-  try{
-    show(qs("#loading"));
-    const payload = {
-      supervisorUsername: state.supervisor.Username,
-      projectId, empCode, notes
-    };
-    const resp = await apiPost("submitCheckIn", payload);
-    // show report
-    qs("#ciReportText").textContent = resp.reportText;
-    show(qs("#ciResult"));
-  }catch(err){
-    qs("#ciError").textContent = err.message;
-    qs("#ciError").style.display = "";
-  }finally{ hide(qs("#loading")); }
-});
-
-qs("#ciCopy").addEventListener("click", async ()=>{
-  const text = qs("#ciReportText").textContent || "";
-  try{
-    await navigator.clipboard.writeText(text);
-    alert("Copied to clipboard");
-  }catch(e){ alert("Copy failed"); }
-});
-
-qs("#ciShare").addEventListener("click", ()=>{
-  const text = qs("#ciReportText").textContent || "";
-  const url = "https://wa.me/?text=" + encodeURIComponent(text);
-  window.open(url, "_blank");
-});
-
-/* Check-Out logic */
-qs("#coProject").addEventListener("change", async function(){
-  const pid = this.value;
-  if(!pid) return;
-  await loadWorkersForProject(pid);
-  await loadAreasForProject(pid);
-  rebuildAllWorkerSelects();
-  rebuildAreaSelects();
-});
-
-async function loadAreasForProject(pid){
-  if(state.areasCache[pid]) return;
-  try{
-    const resp = await apiGet({action:"getAreas", projectId:pid});
-    state.areasCache[pid] = resp.areas || [];
-  }catch(err){
-    alert("Failed to load areas: " + err.message);
-  }
-}
-
-/* Entries UI (dynamic) */
-qs("#addEntry").addEventListener("click", addEntry);
-function addEntry(prefill){
-  const container = qs("#entriesContainer");
-  const div = document.createElement("div");
-  div.className = "entry";
-
-  div.innerHTML = `
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-      <div style="flex:1">
-        <label>Area</label>
-        <select class="areaSelect"></select>
-      </div>
-      <div style="width:120px">
-        <label>Job Type</label>
-        <select class="jobType">
-          <option value="Erection">Erection</option>
-          <option value="Dismantling">Dismantling</option>
-        </select>
-      </div>
-      <button class="removeEntry link-btn" title="Remove" style="margin-top:22px">Remove</button>
-    </div>
-
-    <div style="display:flex;gap:8px">
-      <div class="col">
-        <label>L (m)</label><input class="L" type="number" min="0" step="0.01"/>
-      </div>
-      <div class="col">
-        <label>W (m)</label><input class="W" type="number" min="0" step="0.01"/>
-      </div>
-      <div class="col">
-        <label>H (m)</label><input class="H" type="number" min="0" step="0.01"/>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <div style="width:120px">
-        <label>Q</label><input class="Q" type="number" min="1" step="1" value="1"/>
-      </div>
-      <div style="width:120px">
-        <label>Manpower</label><input class="Manpower" type="number" min="0" step="1" value="1"/>
-      </div>
-      <div style="flex:1">
-        <label>Workers OT (comma EmpCodes or pick)</label>
-        <input class="WorkersOT" type="text" placeholder="E123, E456" />
-      </div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-      <div style="flex:1">
-        <label>OT Hours (sum for this entry)</label>
-        <input class="OTHours" type="number" min="0" step="0.1" value="0"/>
-      </div>
-      <div style="width:150px">
-        <label>Volume (calc)</label>
-        <div class="muted small calcVolume">0</div>
-      </div>
-    </div>
-  `;
-
-  container.appendChild(div);
-
-  // wire up remove and onchange handlers
-  div.querySelector(".removeEntry").addEventListener("click", ()=>{
-    div.remove();
-  });
-
-  const selects = div.querySelectorAll("select, input");
-  selects.forEach(s=>s.addEventListener("input", ()=> updateVolume(div)));
-
-  // populate area & worker selects
-  rebuildAreaSelectFor(div);
-  rebuildAllWorkerSelects(); // for guidance if you later add worker dropdowns
-  if(prefill){
-    // optionally prefill fields
-    if(prefill.jobType) div.querySelector(".jobType").value = prefill.jobType;
-  }
-  updateVolume(div);
-}
-
-function rebuildAreaSelectFor(div){
-  const pid = qs("#coProject").value;
-  const list = state.areasCache[pid] || [];
-  const sel = div.querySelector(".areaSelect");
-  sel.innerHTML = "";
-  sel.appendChild(new Option("-- select area --",""));
-  list.forEach(a=>{
-    sel.appendChild(new Option(`${a.AreaName} (${a.AreaID})`, a.AreaID));
-  });
-}
-
-function rebuildAreaSelects(){
-  document.querySelectorAll(".entry").forEach(div=>rebuildAreaSelectFor(div));
-}
-
-function rebuildAllWorkerSelects(){
-  // In this simplified UI we use a free input for WorkersOT, so nothing required.
-}
-
-function updateVolume(div){
-  const L = parseFloat(div.querySelector(".L").value) || 0;
-  const W = parseFloat(div.querySelector(".W").value) || 0;
-  const H = parseFloat(div.querySelector(".H").value) || 0;
-  const Q = parseInt(div.querySelector(".Q").value) || 0;
-  const job = div.querySelector(".jobType").value;
-  let vol = L*W*H*Q;
-  if(job === "Dismantling") vol = vol/2;
-  div.querySelector(".calcVolume").textContent = vol.toFixed(3);
-}
-
-/* gather entries */
-function gatherEntries(){
-  const pid = qs("#coProject").value;
-  const entries = [];
-  const divs = Array.from(document.querySelectorAll(".entry"));
-  for(const div of divs){
-    const areaId = div.querySelector(".areaSelect").value || "";
-    const areaName = div.querySelector(".areaSelect").selectedOptions[0] ? div.querySelector(".areaSelect").selectedOptions[0].text : "";
-    const jobType = div.querySelector(".jobType").value;
-    const L = parseFloat(div.querySelector(".L").value) || 0;
-    const W = parseFloat(div.querySelector(".W").value) || 0;
-    const H = parseFloat(div.querySelector(".H").value) || 0;
-    const Q = parseInt(div.querySelector(".Q").value) || 0;
-    const Manpower = parseInt(div.querySelector(".Manpower").value) || 0;
-    const WorkersOT = div.querySelector(".WorkersOT").value.trim();
-    const OT_Hours = parseFloat(div.querySelector(".OTHours").value) || 0;
-
-    entries.push({
-      areaId, areaName, jobType, L, W, H, Q, Manpower, WorkersOT, OT_Hours
+    btnInit.addEventListener('click', () => {
+      btnInit.disabled = true;
+      btnInit.textContent = 'Initializing...';
+      apiCall('initSheets', {}).then(res => {
+        alert('initSheets completed: ' + (res && res.ok ? 'OK' : JSON.stringify(res)));
+      }).catch(e => alert('init failed: ' + e)).finally(()=>{btnInit.disabled=false;btnInit.textContent='Init Sheets (admin)'});
     });
-  }
-  return entries;
-}
 
-/* Confirm / submit checkout */
-qs("#coConfirm").addEventListener("click", async ()=>{
-  qs("#coError").style.display = "none";
-  const projectId = qs("#coProject").value;
-  if(!projectId){ qs("#coError").textContent = "Select project"; qs("#coError").style.display = ""; return; }
-  const entries = gatherEntries();
-  if(entries.length === 0){ qs("#coError").textContent = "Add at least one entry"; qs("#coError").style.display = ""; return; }
-  // basic validation
-  for(const [i,en] of entries.entries()){
-    if(en.Q < 1) { qs("#coError").textContent = `Entry ${i+1}: Q must be at least 1`; qs("#coError").style.display = ""; return; }
-    if(en.L < 0 || en.W < 0 || en.H < 0) { qs("#coError").textContent = `Entry ${i+1}: dimensions must be >= 0`; qs("#coError").style.display = ""; return; }
-  }
+    btnLogin.addEventListener('click', () => {
+      const username = usernameEl.value.trim();
+      const passcode = passcodeEl.value.trim();
+      if (!username || !passcode) { loginMsg.textContent = 'Enter username and passcode.'; return; }
+      loginMsg.textContent = 'Checking...';
+      apiCall('verifyLogin', {username, passcode}).then(res => {
+        if (res && res.ok && res.supervisor) {
+          currentSupervisor = res.supervisor;
+          afterLogin();
+        } else {
+          loginMsg.textContent = res.error || 'Invalid credentials';
+        }
+      }).catch(err => { loginMsg.textContent = 'Error: ' + err; });
+    });
 
-  // totals from UI or compute
-  const totalManpower = parseInt(qs("#totalManpower").value) || entries.reduce((s,e)=>s+e.Manpower,0);
-  const totalOTHours = parseFloat(qs("#totalOTHours").value) || entries.reduce((s,e)=>s+e.OT_Hours,0);
+    function afterLogin() {
+      loginCard.style.display = 'none';
+      mainUI.style.display = '';
+      supervisorNameEl.textContent = currentSupervisor.SupervisorName || currentSupervisor.Username;
+      loadConfigAndData();
+    }
 
-  // submit
-  try{
-    show(qs("#loading"));
-    const payload = {
-      supervisorUsername: state.supervisor.Username,
-      projectId,
-      entries,
-      totalManpower,
-      totalOTHours,
-      notes: qs("#coNotes").value.trim()
-    };
-    const resp = await apiPost("submitCheckOut", payload);
-    qs("#coReportText").textContent = resp.reportText;
-    show(qs("#coResult"));
-  }catch(err){
-    qs("#coError").textContent = err.message;
-    qs("#coError").style.display = "";
-  }finally{ hide(qs("#loading")); }
-});
+    function loadConfigAndData() {
+      // get config (MAX_OT_BOXES) and projects
+      apiCall('getConfig', {}).then(cfgRes => {
+        if (cfgRes && cfgRes.ok && cfgRes.config) {
+          MAX_OT_BOXES = Number(cfgRes.config.MAX_OT_BOXES || 5);
+        }
+      }).catch(()=>{});
+      apiCall('getProjects', {}).then(res => {
+        if (res && res.ok) {
+          projects = res.projects || [];
+          renderProjects();
+        }
+      }).catch(e => console.error(e));
+    }
 
-qs("#coCopy").addEventListener("click", async ()=>{
-  const text = qs("#coReportText").textContent || "";
-  try{
-    await navigator.clipboard.writeText(text);
-    alert("Copied to clipboard");
-  }catch(e){ alert("Copy failed"); }
-});
-qs("#coShare").addEventListener("click", ()=>{
-  const text = qs("#coReportText").textContent || "";
-  const url = "https://wa.me/?text=" + encodeURIComponent(text);
-  window.open(url, "_blank");
-});
+    function renderProjects() {
+      projectSelect.innerHTML = '';
+      const opt = document.createElement('option'); opt.value=''; opt.textContent='-- Select Project --'; projectSelect.appendChild(opt);
+      projects.forEach(p => {
+        const o = document.createElement('option'); o.value = p.ProjectID; o.textContent = `${p.ProjectName} (${p.ProjectID})`; projectSelect.appendChild(o);
+      });
+    }
 
-qs("#coCancel").addEventListener("click", ()=>{
-  hide(qs("#checkOutCard")); show(qs("#landing"));
-});
+    projectSelect.addEventListener('change', () => {
+      const pid = projectSelect.value;
+      if (!pid) return;
+      apiCall('getWorkers', {projectId: pid}).then(res => {
+        if (res && res.ok) {
+          renderWorkers(res.workers || []);
+        }
+      });
+      // prefetch OT workers
+      apiCall('getOTWorkers', {projectId: pid}).then(res => {
+        if (res && res.ok) {
+          otWorkersCache[pid] = res.otWorkers || [];
+        }
+      });
+    });
 
-/* Initialization */
-(function init(){
-  // restore supervisor from sessionStorage if present
-  const sup = sessionStorage.getItem("sup");
-  if(sup){
-    try{
-      state.supervisor = JSON.parse(sup);
-      afterLogin();
-      loadProjects();
-    }catch(e){}
-  }
-  // wire initial quick-check: when project is changed in CI, ensure workers loaded
-})();
-</script>
+    function renderWorkers(list) {
+      workerSelect.innerHTML = '';
+      const opt = document.createElement('option'); opt.value=''; opt.textContent='-- Select Worker --'; workerSelect.appendChild(opt);
+      list.forEach(w => {
+        const o = document.createElement('option'); o.value = w.EmpCode; o.textContent = `${w.WorkerName} (${w.EmpCode})`; workerSelect.appendChild(o);
+      });
+    }
+
+    showCheckIn.addEventListener('click', () => {
+      checkInCard.style.display = '';
+      checkOutCard.style.display = 'none';
+    });
+    showCheckOut.addEventListener('click', () => {
+      checkInCard.style.display = 'none';
+      checkOutCard.style.display = '';
+    });
+
+    submitCheckInBtn.addEventListener('click', () => {
+      const pid = projectSelect.value; if (!pid) return alert('Select project');
+      const empCode = workerSelect.value; if (!empCode) return alert('Select worker');
+      const workerText = workerSelect.selectedOptions[0].textContent;
+      const payload = {
+        supervisorUsername: currentSupervisor.Username,
+        supervisorName: currentSupervisor.SupervisorName,
+        projectId: pid,
+        projectName: (projects.find(p=>p.ProjectID===pid)||{}).ProjectName || '',
+        empCode,
+        workerName: workerText.replace(/\s*\(.+$/,''),
+        notes: checkinNotes.value || ''
+      };
+      submitCheckInBtn.disabled = true;
+      apiCall('submitCheckIn', {payload}).then(res => {
+        submitCheckInBtn.disabled = false;
+        if (res && res.ok) {
+          showReport(res.reportText);
+        } else {
+          alert('Error: ' + (res.error || JSON.stringify(res)));
+        }
+      }).catch(err => { submitCheckInBtn.disabled=false; alert('Error: ' + err); });
+    });
+
+    // Check-out entries builder
+    addEntryBtn.addEventListener('click', () => addEntryUI());
+    function addEntryUI(existing) {
+      const idx = document.querySelectorAll('.entry').length;
+      const wrapper = document.createElement('div'); wrapper.className='entry';
+      wrapper.innerHTML = `
+        <div class="row">
+          <div class="flex"><label>Area</label><select class="areaSelect"></select></div>
+          <div style="width:110px"><label>Job</label><select class="jobType"><option value="Erection">Erection</option><option value="Dismantling">Dismantling</option></select></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div class="flex"><label>L (m)</label><input class="L" type="number" step="0.01" /></div>
+          <div class="flex"><label>W (m)</label><input class="W" type="number" step="0.01" /></div>
+          <div class="flex"><label>H (m)</label><input class="H" type="number" step="0.01" /></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div style="width:120px"><label>Q</label><input class="Q" type="number" step="1" min="1" value="1" /></div>
+          <div style="width:120px"><label>Manpower</label><input class="manpower" type="number" step="1" min="0" value="1" /></div>
+          <div class="flex"><label>OT Hours (optional)</label><input class="otHours" type="number" step="0.1" min="0" /></div>
+        </div>
+        <div style="margin-top:8px"><label>Workers OT</label><div class="otBoxes"></div></div>
+        <div style="margin-top:8px" class="actions"><button class="removeEntry small">Remove</button></div>
+      `;
+      entriesDiv.appendChild(wrapper);
+
+      // populate areas based on project
+      const pid = projectSelect.value;
+      apiCall('getAreas', {projectId: pid}).then(res => {
+        const sel = wrapper.querySelector('.areaSelect');
+        sel.innerHTML = '';
+        const o0 = document.createElement('option'); o0.value=''; o0.textContent='-- Area --'; sel.appendChild(o0);
+        if (res && res.ok) {
+          (res.areas || []).forEach(a => {
+            const o = document.createElement('option'); o.value = a.AreaID; o.textContent = a.AreaName + (a.ProjectID ? ' ('+a.ProjectID+')' : ''); sel.appendChild(o);
+          });
+        }
+      });
+
+      // render OT boxes
+      const otBoxes = wrapper.querySelector('.otBoxes');
+      const otList = otWorkersCache[pid] && otWorkersCache[pid].length ? otWorkersCache[pid] : [];
+      for (let i=0;i<MAX_OT_BOXES;i++) {
+        const sel = document.createElement('select'); sel.className='otSelect'; sel.style.marginRight='6px'; sel.style.marginTop='6px';
+        const o0 = document.createElement('option'); o0.value=''; o0.textContent='--'; sel.appendChild(o0);
+        if (otList.length) {
+          otList.forEach(w => {
+            const o = document.createElement('option'); o.value = w.EmpCode; o.textContent = `${w.WorkerName} (${w.EmpCode})`; sel.appendChild(o);
+          });
+        } else {
+          // fallback to worker list
+          Array.from(workerSelect.options).slice(1).forEach(opt => {
+            const o = document.createElement('option'); o.value = opt.value; o.textContent = opt.textContent; sel.appendChild(o);
+          });
+        }
+        otBoxes.appendChild(sel);
+      }
+
+      wrapper.querySelector('.removeEntry').addEventListener('click', () => { wrapper.remove(); computeTotals(); });
+      // recalc on input changes
+      wrapper.addEventListener('input', computeTotals);
+      if (existing) {
+        // populate fields if provided (not used in this minimal UI)
+      }
+      computeTotals();
+    }
+
+    submitCheckOutBtn.addEventListener('click', () => {
+      const pid = projectSelect.value; if (!pid) return alert('Select project');
+      const entries = [];
+      const projectName = (projects.find(p=>p.ProjectID===pid)||{}).ProjectName || '';
+      document.querySelectorAll('.entry').forEach(e => {
+        const areaId = e.querySelector('.areaSelect').value;
+        const areaName = e.querySelector('.areaSelect').selectedOptions[0] ? e.querySelector('.areaSelect').selectedOptions[0].textContent.replace(/\s*\(.+$/,'') : '';
+        const jobType = e.querySelector('.jobType').value;
+        const L = parseFloat(e.querySelector('.L').value||0);
+        const W = parseFloat(e.querySelector('.W').value||0);
+        const H = parseFloat(e.querySelector('.H').value||0);
+        const Q = parseInt(e.querySelector('.Q').value||1,10);
+        const manpower = parseInt(e.querySelector('.manpower').value||0,10);
+        const otHours = parseFloat(e.querySelector('.otHours').value||0);
+        const otSelected = Array.from(e.querySelectorAll('.otSelect')).map(s=>s.value).filter(Boolean);
+        entries.push({areaId, areaName, jobType, L, W, H, Q, manpower, otHours, otSelected});
+      });
+      if (!entries.length) return alert('Add at least one entry');
+      const payload = {
+        supervisorUsername: currentSupervisor.Username,
+        supervisorName: currentSupervisor.SupervisorName,
+        projectId: pid,
+        projectName,
+        entries
+      };
+      submitCheckOutBtn.disabled = true;
+      apiCall('submitCheckOut', {payload}).then(res => {
+        submitCheckOutBtn.disabled = false;
+        if (res && res.ok) {
+          showReport(res.reportText);
+        } else {
+          alert('Error: ' + (res.error || JSON.stringify(res)));
+        }
+      }).catch(err => { submitCheckOutBtn.disabled=false; alert('Error: ' + err); });
+    });
+
+    function computeTotals() {
+      let totalE=0,totalD=0,totalMan=0,totalOT=0;
+      document.querySelectorAll('.entry').forEach(e => {
+        const jobType = e.querySelector('.jobType').value;
+        const L = parseFloat(e.querySelector('.L').value||0);
+        const W = parseFloat(e.querySelector('.W').value||0);
+        const H = parseFloat(e.querySelector('.H').value||0);
+        const Q = parseInt(e.querySelector('.Q').value||0);
+        const manpower = parseInt(e.querySelector('.manpower').value||0);
+        const otHours = parseFloat(e.querySelector('.otHours').value||0);
+        const vol = (jobType === 'Erection') ? (L*W*H*Q) : ((L*W*H*Q)/2);
+        if (jobType === 'Erection') totalE += vol; else totalD += vol;
+        totalMan += manpower;
+        totalOT += isNaN(otHours)?0:otHours;
+      });
+      totalsDiv.textContent = `Totals — Erection: ${totalE.toFixed(2)}, Dismantling: ${totalD.toFixed(2)}, Manpower: ${totalMan}, OT Hours: ${totalOT.toFixed(1)}`;
+    }
+
+    function showReport(text) {
+      reportTextEl.textContent = text;
+      confirmCard.style.display = '';
+      // set share link
+      copyReportBtn.onclick = async () => {
+        try { await navigator.clipboard.writeText(text); alert('Copied'); } catch(e) { alert('Copy failed: ' + e); }
+      };
+      shareWhatsAppBtn.onclick = () => {
+        const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+        window.open(url,'_blank');
+      };
+      doneBtn.onclick = () => {
+        confirmCard.style.display='none';
+        // reset minimal UI
+        checkinNotes.value=''; entriesDiv.innerHTML=''; computeTotals();
+      };
+    }
+
+    // initial small startup: try to fetch projects if user opens UI served from Apps Script (optional)
+    (function tryAutoLoad(){
+      // noop
+    })();
+  </script>
 </body>
 </html>
