@@ -101,7 +101,7 @@
                 <h2 class="text-lg font-bold mb-4 text-orange-700 border-b pb-2">Check-Out & Report</h2>
 
                 <label class="block text-xs font-bold text-gray-600 mb-1">PROJECT</label>
-                <select id="co-project" onchange="renderWorkers('ot'); calculateTotals();" class="w-full p-3 border rounded mb-4 bg-gray-50 font-semibold"></select>
+                <select id="co-project" onchange="updateShiftHours(); renderWorkers('ot'); calculateTotals();" class="w-full p-3 border rounded mb-4 bg-gray-50 font-semibold"></select>
 
                 <div class="bg-gray-50 p-2 rounded border mb-4">
                     <div class="flex justify-between items-center mb-2">
@@ -185,7 +185,7 @@
         function showCheckOut() { 
             document.getElementById('measurement-container').innerHTML = ''; 
             addMeasurementRow(); 
-            // Ensures project/worker lists are updated on entry
+            updateShiftHours(); // CRITICAL: Updates shift hours before calculations
             renderWorkers('ot');
             calculateTotals(); 
             switchView('view-checkout'); 
@@ -239,12 +239,16 @@
                 populate('ci-project');
                 populate('co-project');
                 
-                const coSelect = document.getElementById('co-project');
-                if (coSelect.options.length > 0) {
-                    currentShiftHours = parseInt(coSelect.options[coSelect.selectedIndex].dataset.shift) || 8;
-                }
+                // Set initial shift hours after populating
+                updateShiftHours();
 
             } catch (e) { notify("Failed to load data"); }
+        }
+
+        function updateShiftHours() {
+            const coSelect = document.getElementById('co-project');
+            const selectedOpt = coSelect.options[coSelect.selectedIndex];
+            currentShiftHours = selectedOpt ? parseInt(selectedOpt.dataset.shift) || 8 : 8;
         }
 
         // --- WORKER RENDERER ---
@@ -256,7 +260,7 @@
             
             const filtered = appData.workers.filter(w => w.project === pid);
             if (filtered.length === 0) {
-                container.innerHTML = "<div class='p-2 text-gray-400'>No workers found</div>";
+                container.innerHTML = "<div class='p-2 text-gray-400'>No workers found for this project.</div>";
                 return;
             }
 
@@ -287,7 +291,6 @@
                      notify("Check-In Error: " + res.message);
                 } else {
                     const date = new Date().toLocaleDateString();
-                    // Cleaned up report text
                     let txt = `DAILY CHECK-IN\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\nWorker Count: ${selectedWorkers.length}`;
                     showReport(txt);
                 }
@@ -351,28 +354,27 @@
                 code: c.value
             }));
 
-            // 3. Totals (Shift Hours is retrieved from the selected project's data-shift)
-            const projSelect = document.getElementById('co-project');
-            const selectedOpt = projSelect.options[projSelect.selectedIndex];
-            const currentShiftHours = selectedOpt ? parseInt(selectedOpt.dataset.shift) || 8 : 8;
-            
+            // 3. Totals
             const manpower = parseInt(document.getElementById('co-manpower').value) || 0;
+            // Uses the globally updated currentShiftHours
             const totalManhours = (manpower * currentShiftHours) + otDetails.length; 
             
             const totalVolume = totErec + totDism;
             const prod = totalManhours > 0 ? (totalVolume / totalManhours).toFixed(2) : 0;
 
             return {
-                summary: { totErec, totDism, manpower, otCount: otDetails.length, totalManhours, prod },
+                summary: { totErec: totErec.toFixed(2), totDism: totDism.toFixed(2), manpower, otCount: otDetails.length, totalManhours, prod },
                 measurements: measurementList,
                 otDetails: otDetails
             };
         }
 
         function calculateTotals() {
+            // Ensure shift hours are current before calculation
+            updateShiftHours(); 
             const data = getCheckoutData();
-            document.getElementById('disp-erection').innerText = data.summary.totErec.toFixed(2);
-            document.getElementById('disp-dismantling').innerText = data.summary.totDism.toFixed(2);
+            document.getElementById('disp-erection').innerText = data.summary.totErec;
+            document.getElementById('disp-dismantling').innerText = data.summary.totDism;
             document.getElementById('disp-manhours').innerText = data.summary.totalManhours;
             document.getElementById('disp-prod').innerText = data.summary.prod;
         }
@@ -386,7 +388,7 @@
                  return;
             }
             if (data.summary.manpower <= 0) {
-                 notify("Please enter Total Manpower.");
+                 notify("Please enter Total Manpower (must be > 0).");
                  return;
             }
             if (!currentUser) {
@@ -399,7 +401,7 @@
             try {
                 const payload = {
                     action: "submitCheckOut",
-                    supervisor: currentUser, // This must be currentUser, which is set on successful login
+                    supervisor: currentUser,
                     project: proj,
                     summary: data.summary,          
                     measurements: data.measurements,
@@ -412,11 +414,10 @@
                     notify("Submission Error: " + res.message);
                 } else {
                     const date = new Date().toLocaleDateString();
-                    // Cleaned up report text
                     const txt = `DAILY REPORT\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\n\nErection: ${data.summary.totErec}\nDismantling: ${data.summary.totDism}\nManpower: ${data.summary.manpower}\nOT Staff Count: ${data.summary.otCount}\nManhours: ${data.summary.totalManhours}\nProductivity: ${data.summary.prod}`;
                     showReport(txt);
                 }
-            } catch(e) { notify("Error submitting report. Check console."); console.error(e); }
+            } catch(e) { notify("Fatal error submitting report. Check console."); console.error(e); }
             
             document.getElementById('co-loader').classList.add('hidden');
         }
