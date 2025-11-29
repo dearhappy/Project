@@ -23,6 +23,7 @@
     .small{font-size:13px;padding:8px}
     .entry{border:1px dashed #e2e6ee;padding:8px;border-radius:8px;margin-bottom:8px}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .error{color:#b00020}
     @media(min-width:600px){header h1{font-size:18px}}
   </style>
 </head>
@@ -34,15 +35,20 @@
 
   <div class="container">
     <div id="loginCard" class="card">
-      <label for="username">Supervisor Username</label>
-      <input id="username" type="text" inputmode="text" autocomplete="username" />
+      <label for="usernameSelect">Supervisor</label>
+      <select id="usernameSelect" aria-label="Supervisor username"></select>
+
       <label for="passcode">Passcode</label>
       <input id="passcode" type="password" inputmode="numeric" autocomplete="current-password" />
+
       <div style="margin-top:8px" class="actions">
         <button id="btnLogin">Login</button>
         <button id="btnInit" class="link-btn">Init Sheets (admin)</button>
+        <button id="btnTestConnection" class="link-btn" title="Test the Web App connection">Test connection</button>
       </div>
+
       <div id="loginMsg" class="muted" style="margin-top:8px"></div>
+      <div id="loginError" class="error" style="margin-top:8px;display:none"></div>
     </div>
 
     <div id="mainUI" style="display:none">
@@ -105,13 +111,28 @@
         });
       } else {
         if (!WEB_APP_URL || WEB_APP_URL.startsWith('REPLACE_WITH')) {
-          return Promise.reject('No web app URL configured. Set WEB_APP_URL in index.html or open this file via Apps Script HTML service.');
+          return Promise.reject('No web app URL configured. Set WEB_APP_URL in index.html or serve this file from Apps Script.');
         }
         return fetch(WEB_APP_URL, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          mode: 'cors',
+          credentials: 'omit',
+          headers: {'Content-Type':'application/json'},
           body: JSON.stringify(payload)
-        }).then(r => r.json());
+        }).then(async r => {
+          if (!r.ok) {
+            // try to get text for debugging
+            const text = await r.text().catch(()=>'<no body>');
+            throw new Error(`HTTP ${r.status} ${r.statusText}: ${text}`);
+          }
+          return r.json();
+        }).catch(err => {
+          // Wrap to provide clearer guidance for users
+          const help = `Network error contacting web app: ${err.message || err}. Possible causes:\n- Web app not deployed for "Anyone, even anonymous"\n- Using the wrong exec URL\n- CORS / authentication blocked\nClick "Test connection" for a quick check.`;
+          const e = new Error(help);
+          e.original = err;
+          throw e;
+        });
       }
     }
 
@@ -121,15 +142,18 @@
     let workers = {};
     let otWorkersCache = {};
     let MAX_OT_BOXES = 5;
+    let supervisors = [];
 
     // Elements
     const loginCard = document.getElementById('loginCard');
     const mainUI = document.getElementById('mainUI');
-    const usernameEl = document.getElementById('username');
+    const usernameSelect = document.getElementById('usernameSelect');
     const passcodeEl = document.getElementById('passcode');
     const btnLogin = document.getElementById('btnLogin');
     const btnInit = document.getElementById('btnInit');
+    const btnTestConnection = document.getElementById('btnTestConnection');
     const loginMsg = document.getElementById('loginMsg');
+    const loginError = document.getElementById('loginError');
     const supervisorNameEl = document.getElementById('supervisorName');
     const projectSelect = document.getElementById('projectSelect');
     const workerSelect = document.getElementById('workerSelect');
@@ -149,49 +173,133 @@
     const shareWhatsAppBtn = document.getElementById('shareWhatsApp');
     const doneBtn = document.getElementById('done');
 
-    btnInit.addEventListener('click', () => {
-      btnInit.disabled = true;
-      btnInit.textContent = 'Initializing...';
-      apiCall('initSheets', {}).then(res => {
-        alert('initSheets completed: ' + (res && res.ok ? 'OK' : JSON.stringify(res)));
-      }).catch(e => alert('init failed: ' + e)).finally(()=>{btnInit.disabled=false;btnInit.textContent='Init Sheets (admin)'});
-    });
+    // Initialize UI
+    document.addEventListener('DOMContentLoaded', initUI);
 
-    btnLogin.addEventListener('click', () => {
-      const username = usernameEl.value.trim();
-      const passcode = passcodeEl.value.trim();
-      if (!username || !passcode) { loginMsg.textContent = 'Enter username and passcode.'; return; }
-      loginMsg.textContent = 'Checking...';
-      apiCall('verifyLogin', {username, passcode}).then(res => {
-        if (res && res.ok && res.supervisor) {
-          currentSupervisor = res.supervisor;
-          afterLogin();
+    function initUI() {
+      loginMsg.textContent = 'Loading supervisors...';
+      // Load supervisors first, then projects as needed
+      apiCall('getSupervisors').then(res => {
+        if (res && res.ok) {
+          supervisors = res.supervisors || [];
+          renderSupervisors(supervisors);
+          loginMsg.textContent = '';
         } else {
-          loginMsg.textContent = res.error || 'Invalid credentials';
+          loginMsg.textContent = '';
+          showLoginError(res && res.error ? res.error : 'Failed to load supervisors');
         }
-      }).catch(err => { loginMsg.textContent = 'Error: ' + err; });
-    });
+      }).catch(err => {
+        loginMsg.textContent = '';
+        showLoginError(err.message || String(err));
+      });
+
+      // Attempt to preload projects too for faster UX
+      apiCall('getProjects').then(res => {
+        if (res && res.ok) {
+          projects = res.projects || [];
+          renderProjects();
+        }
+      }).catch(()=>{ /* ignore early project load failures */ });
+
+      btnInit.addEventListener('click', () => {
+        setButtonBusy(btnInit, true, 'Initializing...');
+        apiCall('initSheets', {}).then(res => {
+          alert('initSheets completed: ' + (res && res.ok ? 'OK' : JSON.stringify(res)));
+        }).catch(e => alert('init failed: ' + e.message || e)).finally(()=>setButtonBusy(btnInit,false,'Init Sheets (admin)'));
+      });
+
+      btnTestConnection.addEventListener('click', testConnection);
+
+      btnLogin.addEventListener('click', () => {
+        loginError.style.display = 'none';
+        const sel = usernameSelect.value;
+        const pass = passcodeEl.value.trim();
+        if (!sel) return showLoginError('Select a supervisor username from the dropdown.');
+        if (!pass) return showLoginError('Enter passcode.');
+        const sup = supervisors.find(s => String(s.Username)===String(sel));
+        if (!sup) return showLoginError('Selected supervisor not found.');
+        loginMsg.textContent = 'Verifying...';
+        apiCall('verifyLogin', {username: sel, passcode: pass}).then(res => {
+          loginMsg.textContent = '';
+          if (res && res.ok && res.supervisor) {
+            currentSupervisor = res.supervisor;
+            afterLogin();
+          } else {
+            showLoginError(res && res.error ? res.error : 'Invalid credentials');
+          }
+        }).catch(err => {
+          loginMsg.textContent = '';
+          showLoginError(err.message || String(err));
+        });
+      });
+
+      showCheckIn.addEventListener('click', () => {
+        checkInCard.style.display = '';
+        checkOutCard.style.display = 'none';
+      });
+      showCheckOut.addEventListener('click', () => {
+        checkInCard.style.display = 'none';
+        checkOutCard.style.display = '';
+      });
+
+      submitCheckInBtn.addEventListener('click', () => {
+        if (!currentSupervisor) return showLoginError('Not logged in.');
+        const pid = projectSelect.value; if (!pid) return alert('Select project');
+        const empCode = workerSelect.value; if (!empCode) return alert('Select worker');
+        const workerText = workerSelect.selectedOptions[0].textContent;
+        const payload = {
+          supervisorUsername: currentSupervisor.Username,
+          supervisorName: currentSupervisor.SupervisorName,
+          projectId: pid,
+          projectName: (projects.find(p=>p.ProjectID===pid)||{}).ProjectName || '',
+          empCode,
+          workerName: workerText.replace(/\s*\(.+$/,''),
+          notes: checkinNotes.value || ''
+        };
+        submitCheckInBtn.disabled = true;
+        apiCall('submitCheckIn', {payload}).then(res => {
+          submitCheckInBtn.disabled = false;
+          if (res && res.ok) {
+            showReport(res.reportText);
+          } else {
+            alert('Error: ' + (res.error || JSON.stringify(res)));
+          }
+        }).catch(err => { submitCheckInBtn.disabled=false; alert('Error: ' + (err.message || err)); });
+      });
+
+      addEntryBtn.addEventListener('click', () => addEntryUI());
+      submitCheckOutBtn.addEventListener('click', submitCheckOutHandler);
+    }
+
+    function renderSupervisors(list) {
+      usernameSelect.innerHTML = '';
+      const opt = document.createElement('option'); opt.value=''; opt.textContent='-- Select Supervisor --'; usernameSelect.appendChild(opt);
+      list.forEach(s => {
+        const o = document.createElement('option'); o.value = s.Username; o.textContent = `${s.SupervisorName || s.Username} (${s.Username})`; usernameSelect.appendChild(o);
+      });
+    }
+
+    function showLoginError(msg) {
+      loginError.style.display = '';
+      loginError.textContent = msg;
+    }
+
+    function setButtonBusy(btn, busy, text) {
+      btn.disabled = busy;
+      if (text) btn.textContent = text;
+    }
 
     function afterLogin() {
       loginCard.style.display = 'none';
       mainUI.style.display = '';
       supervisorNameEl.textContent = currentSupervisor.SupervisorName || currentSupervisor.Username;
-      loadConfigAndData();
-    }
-
-    function loadConfigAndData() {
-      // get config (MAX_OT_BOXES) and projects
-      apiCall('getConfig', {}).then(cfgRes => {
-        if (cfgRes && cfgRes.ok && cfgRes.config) {
-          MAX_OT_BOXES = Number(cfgRes.config.MAX_OT_BOXES || 5);
-        }
-      }).catch(()=>{});
-      apiCall('getProjects', {}).then(res => {
+      // Load projects & workers for selected project on change
+      apiCall('getProjects').then(res => {
         if (res && res.ok) {
           projects = res.projects || [];
           renderProjects();
         }
-      }).catch(e => console.error(e));
+      }).catch(e => console.warn(e));
     }
 
     function renderProjects() {
@@ -200,23 +308,17 @@
       projects.forEach(p => {
         const o = document.createElement('option'); o.value = p.ProjectID; o.textContent = `${p.ProjectName} (${p.ProjectID})`; projectSelect.appendChild(o);
       });
+      projectSelect.addEventListener('change', () => {
+        const pid = projectSelect.value;
+        if (!pid) return;
+        apiCall('getWorkers', {projectId: pid}).then(res => {
+          if (res && res.ok) renderWorkers(res.workers || []);
+        }).catch(e => console.warn(e));
+        apiCall('getOTWorkers', {projectId: pid}).then(res => {
+          if (res && res.ok) otWorkersCache[pid]=res.otWorkers||[];
+        }).catch(()=>{});
+      });
     }
-
-    projectSelect.addEventListener('change', () => {
-      const pid = projectSelect.value;
-      if (!pid) return;
-      apiCall('getWorkers', {projectId: pid}).then(res => {
-        if (res && res.ok) {
-          renderWorkers(res.workers || []);
-        }
-      });
-      // prefetch OT workers
-      apiCall('getOTWorkers', {projectId: pid}).then(res => {
-        if (res && res.ok) {
-          otWorkersCache[pid] = res.otWorkers || [];
-        }
-      });
-    });
 
     function renderWorkers(list) {
       workerSelect.innerHTML = '';
@@ -226,41 +328,7 @@
       });
     }
 
-    showCheckIn.addEventListener('click', () => {
-      checkInCard.style.display = '';
-      checkOutCard.style.display = 'none';
-    });
-    showCheckOut.addEventListener('click', () => {
-      checkInCard.style.display = 'none';
-      checkOutCard.style.display = '';
-    });
-
-    submitCheckInBtn.addEventListener('click', () => {
-      const pid = projectSelect.value; if (!pid) return alert('Select project');
-      const empCode = workerSelect.value; if (!empCode) return alert('Select worker');
-      const workerText = workerSelect.selectedOptions[0].textContent;
-      const payload = {
-        supervisorUsername: currentSupervisor.Username,
-        supervisorName: currentSupervisor.SupervisorName,
-        projectId: pid,
-        projectName: (projects.find(p=>p.ProjectID===pid)||{}).ProjectName || '',
-        empCode,
-        workerName: workerText.replace(/\s*\(.+$/,''),
-        notes: checkinNotes.value || ''
-      };
-      submitCheckInBtn.disabled = true;
-      apiCall('submitCheckIn', {payload}).then(res => {
-        submitCheckInBtn.disabled = false;
-        if (res && res.ok) {
-          showReport(res.reportText);
-        } else {
-          alert('Error: ' + (res.error || JSON.stringify(res)));
-        }
-      }).catch(err => { submitCheckInBtn.disabled=false; alert('Error: ' + err); });
-    });
-
-    // Check-out entries builder
-    addEntryBtn.addEventListener('click', () => addEntryUI());
+    // Check-out UI builders (same as before, omitted some comments)
     function addEntryUI(existing) {
       const idx = document.querySelectorAll('.entry').length;
       const wrapper = document.createElement('div'); wrapper.className='entry';
@@ -284,7 +352,6 @@
       `;
       entriesDiv.appendChild(wrapper);
 
-      // populate areas based on project
       const pid = projectSelect.value;
       apiCall('getAreas', {projectId: pid}).then(res => {
         const sel = wrapper.querySelector('.areaSelect');
@@ -295,12 +362,13 @@
             const o = document.createElement('option'); o.value = a.AreaID; o.textContent = a.AreaName + (a.ProjectID ? ' ('+a.ProjectID+')' : ''); sel.appendChild(o);
           });
         }
-      });
+      }).catch(()=>{});
 
-      // render OT boxes
       const otBoxes = wrapper.querySelector('.otBoxes');
       const otList = otWorkersCache[pid] && otWorkersCache[pid].length ? otWorkersCache[pid] : [];
-      for (let i=0;i<MAX_OT_BOXES;i++) {
+      // default MAX_OT_BOXES or fallback
+      const boxes = MAX_OT_BOXES || 5;
+      for (let i=0;i<boxes;i++) {
         const sel = document.createElement('select'); sel.className='otSelect'; sel.style.marginRight='6px'; sel.style.marginTop='6px';
         const o0 = document.createElement('option'); o0.value=''; o0.textContent='--'; sel.appendChild(o0);
         if (otList.length) {
@@ -308,7 +376,6 @@
             const o = document.createElement('option'); o.value = w.EmpCode; o.textContent = `${w.WorkerName} (${w.EmpCode})`; sel.appendChild(o);
           });
         } else {
-          // fallback to worker list
           Array.from(workerSelect.options).slice(1).forEach(opt => {
             const o = document.createElement('option'); o.value = opt.value; o.textContent = opt.textContent; sel.appendChild(o);
           });
@@ -317,15 +384,30 @@
       }
 
       wrapper.querySelector('.removeEntry').addEventListener('click', () => { wrapper.remove(); computeTotals(); });
-      // recalc on input changes
       wrapper.addEventListener('input', computeTotals);
-      if (existing) {
-        // populate fields if provided (not used in this minimal UI)
-      }
       computeTotals();
     }
 
-    submitCheckOutBtn.addEventListener('click', () => {
+    function computeTotals() {
+      let totalE=0,totalD=0,totalMan=0,totalOT=0;
+      document.querySelectorAll('.entry').forEach(e => {
+        const jobType = e.querySelector('.jobType').value;
+        const L = parseFloat(e.querySelector('.L').value||0);
+        const W = parseFloat(e.querySelector('.W').value||0);
+        const H = parseFloat(e.querySelector('.H').value||0);
+        const Q = parseInt(e.querySelector('.Q').value||0);
+        const manpower = parseInt(e.querySelector('.manpower').value||0);
+        const otHours = parseFloat(e.querySelector('.otHours').value||0);
+        const vol = (jobType === 'Erection') ? (L*W*H*Q) : ((L*W*H*Q)/2);
+        if (jobType === 'Erection') totalE += vol; else totalD += vol;
+        totalMan += manpower;
+        totalOT += isNaN(otHours)?0:otHours;
+      });
+      totalsDiv.textContent = `Totals — Erection: ${totalE.toFixed(2)}, Dismantling: ${totalD.toFixed(2)}, Manpower: ${totalMan}, OT Hours: ${totalOT.toFixed(1)}`;
+    }
+
+    function submitCheckOutHandler() {
+      if (!currentSupervisor) return showLoginError('Not logged in.');
       const pid = projectSelect.value; if (!pid) return alert('Select project');
       const entries = [];
       const projectName = (projects.find(p=>p.ProjectID===pid)||{}).ProjectName || '';
@@ -358,31 +440,12 @@
         } else {
           alert('Error: ' + (res.error || JSON.stringify(res)));
         }
-      }).catch(err => { submitCheckOutBtn.disabled=false; alert('Error: ' + err); });
-    });
-
-    function computeTotals() {
-      let totalE=0,totalD=0,totalMan=0,totalOT=0;
-      document.querySelectorAll('.entry').forEach(e => {
-        const jobType = e.querySelector('.jobType').value;
-        const L = parseFloat(e.querySelector('.L').value||0);
-        const W = parseFloat(e.querySelector('.W').value||0);
-        const H = parseFloat(e.querySelector('.H').value||0);
-        const Q = parseInt(e.querySelector('.Q').value||0);
-        const manpower = parseInt(e.querySelector('.manpower').value||0);
-        const otHours = parseFloat(e.querySelector('.otHours').value||0);
-        const vol = (jobType === 'Erection') ? (L*W*H*Q) : ((L*W*H*Q)/2);
-        if (jobType === 'Erection') totalE += vol; else totalD += vol;
-        totalMan += manpower;
-        totalOT += isNaN(otHours)?0:otHours;
-      });
-      totalsDiv.textContent = `Totals — Erection: ${totalE.toFixed(2)}, Dismantling: ${totalD.toFixed(2)}, Manpower: ${totalMan}, OT Hours: ${totalOT.toFixed(1)}`;
+      }).catch(err => { submitCheckOutBtn.disabled=false; alert('Error: ' + (err.message || err)); });
     }
 
     function showReport(text) {
       reportTextEl.textContent = text;
       confirmCard.style.display = '';
-      // set share link
       copyReportBtn.onclick = async () => {
         try { await navigator.clipboard.writeText(text); alert('Copied'); } catch(e) { alert('Copy failed: ' + e); }
       };
@@ -392,15 +455,46 @@
       };
       doneBtn.onclick = () => {
         confirmCard.style.display='none';
-        // reset minimal UI
         checkinNotes.value=''; entriesDiv.innerHTML=''; computeTotals();
       };
     }
 
-    // initial small startup: try to fetch projects if user opens UI served from Apps Script (optional)
-    (function tryAutoLoad(){
-      // noop
-    })();
+    // Connection test helper - attempts a lightweight fetch to the web app URL
+    function testConnection() {
+      loginError.style.display = 'none';
+      if (window.google && google.script && google.script.run) {
+        alert('This page is running inside Apps Script (google.script.run available). No cross-origin fetch needed.');
+        return;
+      }
+      if (!WEB_APP_URL || WEB_APP_URL.startsWith('REPLACE_WITH')) {
+        showLoginError('WEB_APP_URL is not configured in index.html. Set the deployed web app exec URL in the WEB_APP_URL constant.');
+        return;
+      }
+      // Try POST with a simple action that doesn't change data
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({action:'getConfig'})
+      }).then(async r => {
+        if (!r.ok) {
+          const txt = await r.text().catch(()=>'<no body>');
+          showLoginError(`Connection test failed: HTTP ${r.status} ${r.statusText}\n${txt}\n\nMake sure web app is deployed "Anyone, even anonymous" or accessible to your users.`);
+        } else {
+          const body = await r.json().catch(()=>null);
+          if (body && body.ok) {
+            alert('Connection test OK — web app reachable.');
+            // Optionally reload supervisors/projects
+            initUI();
+          } else {
+            showLoginError('Connection succeeded but response not OK: ' + JSON.stringify(body));
+          }
+        }
+      }).catch(err => {
+        showLoginError('Connection test error: ' + (err.message || err) + '\n\nLikely causes:\n- Web app requires login (not "Anyone, even anonymous")\n- Wrong exec URL\n- Network / ad-blocker / corporate proxy blocking the request\nUse the Apps Script editor to confirm deployment settings, then redeploy and update WEB_APP_URL.');
+      });
+    }
   </script>
 </body>
 </html>
