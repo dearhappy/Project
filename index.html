@@ -128,7 +128,11 @@
           return r.json();
         }).catch(err => {
           // Wrap to provide clearer guidance for users
-          const help = `Network error contacting web app: ${err.message || err}. Possible causes:\n- Web app not deployed for "Anyone, even anonymous"\n- Using the wrong exec URL\n- CORS / authentication blocked\nClick "Test connection" for a quick check.`;
+          const help = `Network error contacting web app: ${err && err.message ? err.message : err}. Possible causes:
+- Web app not deployed for "Anyone, even anonymous"
+- Using the wrong exec URL
+- CORS / authentication issues
+- Network, ad-blocker, or corporate firewall`;
           const e = new Error(help);
           e.original = err;
           throw e;
@@ -205,7 +209,7 @@
         setButtonBusy(btnInit, true, 'Initializing...');
         apiCall('initSheets', {}).then(res => {
           alert('initSheets completed: ' + (res && res.ok ? 'OK' : JSON.stringify(res)));
-        }).catch(e => alert('init failed: ' + e.message || e)).finally(()=>setButtonBusy(btnInit,false,'Init Sheets (admin)'));
+        }).catch(e => alert('init failed: ' + (e && e.message ? e.message : e))).finally(()=>setButtonBusy(btnInit,false,'Init Sheets (admin)'));
       });
 
       btnTestConnection.addEventListener('click', testConnection);
@@ -492,7 +496,7 @@
           }
         }
       }).catch(err => {
-        showLoginError('Connection test error: ' + (err.message || err) + '\n\nLikely causes:\n- Web app requires login (not "Anyone, even anonymous")\n- Wrong exec URL\n- Network / ad-blocker / corporate proxy blocking the request\nUse the Apps Script editor to confirm deployment settings, then redeploy and update WEB_APP_URL.');
+        showLoginError('Connection test error: ' + (err.message || err) + '\n\nLikely causes:\n- Web app requires login (not "Anyone, even anonymous")\n- Wrong exec URL\n- Network / ad-blocker / corporate firewall\n- CORS / authentication issues');
       });
     }
   </script>
