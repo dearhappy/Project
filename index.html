@@ -1,811 +1,567 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <base target="_top">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>Worker Attendance & Scaffolding Report</title>
-    
-    <script>
-        // *** CRITICAL: REPLACE THIS PLACEHOLDER URL ***
-        // Use the exact URL copied from your deployed Google Apps Script Web App.
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec"; 
-    </script>
-    <style>
-        /* Mobile-First Base Styles */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f7f6;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 15px;
-        }
-        header {
-            background-color: #007bff;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            font-size: 1.5em;
-            margin: 0;
-        }
-        /* Buttons & Forms */
-        button, input[type="submit"], .btn {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: block;
-            font-size: 1em;
-            margin: 10px 0;
-            cursor: pointer;
-            border-radius: 8px;
-            width: 100%;
-            box-sizing: border-box;
-            transition: background-color 0.3s;
-        }
-        button:hover:not(:disabled), input[type="submit"]:hover:not(:disabled), .btn:hover:not(:disabled) {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        input[type="text"], input[type="password"], input[type="number"], select {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0 15px 0;
-            display: inline-block;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 1em;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        .message, .error {
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .hidden {
-            display: none;
-        }
-
-        /* Flow Specific */
-        .scaffolding-entry {
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            background-color: white;
-            position: relative;
-        }
-        .remove-entry {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: none;
-            border: none;
-            color: #dc3545;
-            font-size: 1.5em;
-            padding: 0;
-            margin: 0;
-            width: auto;
-            display: inline-block;
-        }
-        .ot-worker-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .ot-worker-box select, .ot-worker-box input {
-            flex-grow: 1;
-            margin: 0;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Attendance & Scaffolding Tracker</title>
+<style>
+  :root{
+    --bg:#f7f8fb; --card:#ffffff; --accent:#0b78d1; --danger:#d0393e; --muted:#6b7280;
+  }
+  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{background:var(--bg);color:#111;}
+  .app{max-width:720px;margin:0 auto;padding:12px;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 0;}
+  h1{font-size:1.1rem;margin:0;}
+  .sup-info{font-size:.9rem;color:var(--muted);}
+  main{display:block;gap:12px;}
+  .card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+  .big-btn{display:block;width:100%;padding:14px;border-radius:10px;border:0;font-size:1rem;background:var(--accent);color:#fff}
+  .flow-btn{display:flex;gap:8px;align-items:center;padding:12px;border-radius:10px;border:1px solid #e6e9ee;background:#fff}
+  label{display:block;font-size:.85rem;margin-bottom:6px;color:var(--muted);}
+  select,input[type="text"],input[type="number"],textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ee;font-size:1rem;background:transparent;box-sizing:border-box}
+  .row{display:flex;gap:8px}
+  .col{flex:1;}
+  .muted{color:var(--muted);font-size:.9rem}
+  .small{font-size:.85rem}
+  .link-btn{background:transparent;border:0;color:var(--accent);padding:0;font-size:.95rem}
+  .danger{background:var(--danger);color:#fff;border:0;padding:10px;border-radius:8px}
+  .inline-error{color:var(--danger);font-size:.85rem;margin-top:6px}
+  .entries{display:flex;flex-direction:column;gap:10px}
+  .entry{padding:8px;border-radius:8px;border:1px dashed #e6e9ee}
+  .actions{display:flex;gap:8px;margin-top:12px}
+  .report{white-space:pre-wrap;background:#f1f5f9;padding:12px;border-radius:8px;font-family:monospace;font-size:.95rem}
+  footer{font-size:.8rem;color:var(--muted);text-align:center;padding:18px 0;}
+  @media(min-width:600px){h1{font-size:1.25rem}}
+</style>
 </head>
 <body>
-    <header>
-        <h1 id="app-title">Scaffolding Reporter</h1>
-        <div id="supervisor-info"></div>
-    </header>
+<div class="app" id="app">
+  <header>
+    <div>
+      <h1>Attendance & Scaffolding Tracker</h1>
+      <div id="supInfo" class="sup-info">Not signed in</div>
+    </div>
+    <div>
+      <button id="signOutBtn" class="link-btn" style="display:none">Sign out</button>
+    </div>
+  </header>
 
-    <div class="container">
-        <div id="app-container">
-
-            <div id="login-screen" class="screen">
-                <h2>Supervisor Login</h2>
-                <div id="login-error" class="error hidden"></div>
-                
-                <label for="supervisor-select">Select Supervisor</label>
-                <select id="supervisor-select" onchange="getEl('username').value = this.value">
-                    <option value="">-- Loading Supervisors --</option>
-                </select>
-                <input type="hidden" id="username">
-
-                <label for="passcode">Passcode</label>
-                <input type="password" id="passcode" placeholder="Enter your passcode">
-
-                <button onclick="handleLogin()">Login</button>
-            </div>
-
-            <div id="main-menu" class="screen hidden">
-                <h2 id="welcome-message"></h2>
-                <button onclick="showFlow('check-in')">📅 Worker Check-In</button>
-                <button onclick="showFlow('check-out')">👷 Daily Scaffolding Report (Check-Out)</button>
-                <button onclick="logout()">🚪 Logout</button>
-            </div>
-
-            <div id="check-in-flow" class="screen hidden">
-                <h2>Worker Check-In</h2>
-                <div id="checkin-error" class="error hidden"></div>
-
-                <label for="checkin-project">Select Project</label>
-                <select id="checkin-project" onchange="loadWorkers('checkin')"></select>
-
-                <label for="checkin-worker">Select Worker</label>
-                <select id="checkin-worker"></select>
-                
-                <label for="checkin-notes">Notes (Optional)</label>
-                <input type="text" id="checkin-notes" placeholder="e.g., Late arrival">
-
-                <button onclick="confirmSubmission('check-in')">Submit Check-In</button>
-                <button class="btn" onclick="showFlow('main-menu')" style="background-color: #6c757d;">Cancel</button>
-            </div>
-
-            <div id="check-out-flow" class="screen hidden">
-                <h2>Daily Scaffolding Report</h2>
-                <div id="checkout-error" class="error hidden"></div>
-
-                <label for="checkout-project">Select Project</label>
-                <select id="checkout-project" onchange="loadWorkers('checkout'); loadAreas()"></select>
-                
-                <h3>Scaffolding Entries</h3>
-                <div id="scaffolding-entries">
-                    </div>
-                <button onclick="addScaffoldingEntry()" style="background-color: #28a745;">+ Add Entry</button>
-                
-                <hr>
-                
-                <h3>Overtime Manpower</h3>
-                <div id="ot-workers-container">
-                    </div>
-                <button onclick="addOtWorker()" style="background-color: #ffc107; color: #333;">+ Add OT Worker</button>
-
-                <hr>
-
-                <div id="summary-section">
-                    <label for="checkout-notes">Report Notes (Optional)</label>
-                    <input type="text" id="checkout-notes" placeholder="General daily report notes">
-                </div>
-
-                <button onclick="confirmSubmission('check-out')">Submit Daily Report</button>
-                <button class="btn" onclick="showFlow('main-menu')" style="background-color: #6c757d;">Cancel</button>
-            </div>
-
-            <div id="confirmation-screen" class="screen hidden">
-                <h2>Confirmation</h2>
-                <div id="confirmation-details"></div>
-                <button id="confirm-submit-btn" onclick="finalSubmit()">Confirm & Submit</button>
-                <button class="btn" onclick="goBackToForm()" style="background-color: #dc3545;">Go Back & Edit</button>
-            </div>
-
-            <div id="success-screen" class="screen hidden">
-                <h2>Submission Successful!</h2>
-                <div id="success-message" class="success"></div>
-                <h3>Generated Report</h3>
-                <pre id="generated-report" style="white-space: pre-wrap; background-color: #eee; padding: 10px; border-radius: 4px;"></pre>
-                
-                <button onclick="copyReport()">📋 Copy Report</button>
-                <button id="whatsapp-share-btn" class="hidden" onclick="shareToWhatsApp()">📲 Share to WhatsApp</button>
-                
-                <button class="btn" onclick="resetApp()">Start New Flow</button>
-            </div>
-            
-            <div id="loading" class="hidden" style="text-align: center; padding: 20px;">
-                <p>Processing request, please wait...</p>
-            </div>
+  <main>
+    <div id="loginCard" class="card">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label>Supervisor Username</label>
+        <input id="username" type="text" inputmode="text" autocomplete="username" />
+        <label>Passcode</label>
+        <input id="passcode" type="password" inputmode="numeric" autocomplete="current-password" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="loginBtn" class="big-btn">Sign In</button>
         </div>
+        <div id="loginError" class="inline-error" style="display:none"></div>
+      </div>
     </div>
 
+    <div id="landing" class="card" style="display:none">
+      <div class="muted small">Choose flow</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <button id="openCheckIn" class="flow-btn">Check-In (Quick)</button>
+        <button id="openCheckOut" class="flow-btn">Check-Out / Daily Report</button>
+      </div>
+    </div>
+
+    <!-- Check-In Flow -->
+    <div id="checkInCard" class="card" style="display:none">
+      <div class="muted small">Check-In</div>
+      <div style="margin-top:8px">
+        <label>Project</label>
+        <select id="ciProject"></select>
+        <label>Worker</label>
+        <select id="ciWorker"></select>
+        <label>Notes (optional)</label>
+        <textarea id="ciNotes" rows="2"></textarea>
+        <div class="actions">
+          <button id="ciConfirm" class="big-btn">Submit Check-In</button>
+          <button id="ciCancel" class="link-btn">Cancel</button>
+        </div>
+        <div id="ciError" class="inline-error" style="display:none"></div>
+      </div>
+      <div id="ciResult" style="display:none;margin-top:10px">
+        <div class="report" id="ciReportText"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="ciCopy" class="big-btn" style="flex:1">Copy Report</button>
+          <button id="ciShare" class="big-btn" style="flex:1;background:#25D366">Share WhatsApp</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Check-Out Flow -->
+    <div id="checkOutCard" class="card" style="display:none">
+      <div class="muted small">Check-Out / Daily Report</div>
+      <div style="margin-top:8px">
+        <label>Project</label>
+        <select id="coProject"></select>
+
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <div class="muted small">Entries</div>
+          <button id="addEntry" class="link-btn" style="margin-left:auto">+ Add Entry</button>
+        </div>
+
+        <div id="entriesContainer" class="entries" style="margin-top:8px"></div>
+
+        <div style="margin-top:8px">
+          <label>Total Manpower</label>
+          <input id="totalManpower" type="number" min="0" step="1" />
+          <label>Total OT Hours</label>
+          <input id="totalOTHours" type="number" min="0" step="0.1" />
+        </div>
+
+        <div style="margin-top:8px">
+          <label>Notes (optional)</label>
+          <textarea id="coNotes" rows="2"></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="coConfirm" class="big-btn">Submit Daily Report</button>
+          <button id="coCancel" class="link-btn">Cancel</button>
+        </div>
+        <div id="coError" class="inline-error" style="display:none"></div>
+      </div>
+
+      <div id="coResult" style="display:none;margin-top:10px">
+        <div class="report" id="coReportText"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="coCopy" class="big-btn" style="flex:1">Copy Report</button>
+          <button id="coShare" class="big-btn" style="flex:1;background:#25D366">Share WhatsApp</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" class="card" style="display:none">
+      <div class="muted">Loading…</div>
+    </div>
+
+  </main>
+
+  <footer>
+    Tips: Use small taps, choose project first. After deploying Apps Script, set WEB_APP_URL in the top of this file (see README).
+  </footer>
+</div>
+
 <script>
-    // --- Global State ---
-    const state = {
-        supervisor: null,
-        projects: [],
-        workers: [],
-        areas: [],
-        currentFlow: null,
-        failedLoginAttempts: 0,
-        MAX_LOGIN_ATTEMPTS: 5,
+/*
+  index.html (frontend)
+  - Configure WEB_APP_URL after deploying your Apps Script web app (see README)
+  - The frontend uses simple fetch() to call the web app endpoints.
+*/
+
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec"; // e.g. https://script.google.com/macros/s/XXX/exec
+// End user: replace above with published Apps Script URL.
+
+const qs = s=>document.querySelector(s);
+
+let state = {
+  supervisor: null, // {Username, SupervisorName, Email}
+  projects: [],
+  workersCache: {}, // projectId -> workers[]
+  areasCache: {},   // projectId -> areas[]
+};
+
+function show(el){ el.style.display = ""; }
+function hide(el){ el.style.display = "none"; }
+function setText(el,txt){ el.textContent = txt; }
+
+async function apiGet(params){
+  // params is an object of query parameters
+  const url = new URL(WEB_APP_URL);
+  Object.keys(params||{}).forEach(k=>url.searchParams.set(k, params[k]));
+  const res = await fetch(url.toString());
+  const js = await res.json();
+  if(js.error) throw new Error(js.error);
+  return js;
+}
+
+async function apiPost(action, payload){
+  const url = new URL(WEB_APP_URL);
+  url.searchParams.set("action", action);
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  const js = await res.json();
+  if(js.error) throw new Error(js.error);
+  return js;
+}
+
+/* UI helpers */
+function populateSelect(selectEl, list, valueKey, labelFn, includeBlank){
+  selectEl.innerHTML = "";
+  if(includeBlank) selectEl.appendChild(new Option("-- select --",""));
+  list.forEach(it=>{
+    const opt = new Option(labelFn(it), it[valueKey]);
+    selectEl.appendChild(opt);
+  });
+}
+
+/* Login */
+qs("#loginBtn").addEventListener("click", login);
+qs("#signOutBtn").addEventListener("click", signOut);
+
+async function login(){
+  const username = qs("#username").value.trim();
+  const passcode = qs("#passcode").value.trim();
+  qs("#loginError").style.display = "none";
+  if(!username || !passcode){
+    qs("#loginError").textContent = "Enter username and passcode";
+    qs("#loginError").style.display = "";
+    return;
+  }
+  try{
+    show(qs("#loading"));
+    const resp = await apiPost("verifyLogin",{username, passcode});
+    state.supervisor = resp.supervisor;
+    sessionStorage.setItem("sup", JSON.stringify(state.supervisor));
+    afterLogin();
+    await loadProjects();
+  }catch(err){
+    qs("#loginError").textContent = err.message;
+    qs("#loginError").style.display = "";
+  }finally{ hide(qs("#loading")); }
+}
+
+function signOut(){
+  state.supervisor = null;
+  sessionStorage.removeItem("sup");
+  qs("#supInfo").textContent = "Not signed in";
+  hide(qs("#landing"));
+  hide(qs("#checkInCard"));
+  hide(qs("#checkOutCard"));
+  show(qs("#loginCard"));
+  hide(qs("#signOutBtn"));
+  qs("#username").value=""; qs("#passcode").value="";
+}
+
+/* After login state */
+function afterLogin(){
+  const s = state.supervisor;
+  qs("#supInfo").textContent = `${s.SupervisorName} (${s.Username})`;
+  show(qs("#signOutBtn"));
+  hide(qs("#loginCard"));
+  show(qs("#landing"));
+  // restore last chosen project if any
+}
+
+/* Load projects */
+async function loadProjects(){
+  try{
+    show(qs("#loading"));
+    const resp = await apiGet({action:"getProjects"});
+    state.projects = resp.projects || [];
+    // populate project selects
+    const ciProject = qs("#ciProject");
+    const coProject = qs("#coProject");
+    populateSelect(ciProject, state.projects, "ProjectID", p=>`${p.ProjectName} (${p.ProjectID})`, true);
+    populateSelect(coProject, state.projects, "ProjectID", p=>`${p.ProjectName} (${p.ProjectID})`, true);
+  }catch(err){
+    alert("Failed to load projects: " + err.message);
+  }finally{ hide(qs("#loading")); }
+}
+
+/* Landing actions */
+qs("#openCheckIn").addEventListener("click",()=>{
+  hide(qs("#landing"));
+  show(qs("#checkInCard"));
+  qs("#ciResult").style.display="none";
+});
+qs("#openCheckOut").addEventListener("click",()=>{
+  hide(qs("#landing"));
+  show(qs("#checkOutCard"));
+  qs("#coResult").style.display="none";
+});
+
+/* Check-In logic */
+qs("#ciProject").addEventListener("change", async function(){
+  const pid = this.value;
+  if(!pid) return;
+  await loadWorkersForProject(pid);
+  populateSelect(qs("#ciWorker"), state.workersCache[pid]||[], "EmpCode", w=>`${w.WorkerName} (${w.EmpCode})`, true);
+});
+
+async function loadWorkersForProject(pid){
+  if(state.workersCache[pid]) return;
+  try{
+    const resp = await apiGet({action:"getWorkers", projectId:pid});
+    state.workersCache[pid] = resp.workers || [];
+  }catch(err){
+    alert("Failed to load workers: " + err.message);
+  }
+}
+
+qs("#ciCancel").addEventListener("click", ()=>{
+  hide(qs("#checkInCard")); show(qs("#landing"));
+});
+
+qs("#ciConfirm").addEventListener("click", async ()=>{
+  qs("#ciError").style.display = "none";
+  const projectId = qs("#ciProject").value;
+  const empCode = qs("#ciWorker").value;
+  const notes = qs("#ciNotes").value.trim();
+  if(!projectId || !empCode){
+    qs("#ciError").textContent = "Select project and worker.";
+    qs("#ciError").style.display = "";
+    return;
+  }
+  try{
+    show(qs("#loading"));
+    const payload = {
+      supervisorUsername: state.supervisor.Username,
+      projectId, empCode, notes
     };
+    const resp = await apiPost("submitCheckIn", payload);
+    // show report
+    qs("#ciReportText").textContent = resp.reportText;
+    show(qs("#ciResult"));
+  }catch(err){
+    qs("#ciError").textContent = err.message;
+    qs("#ciError").style.display = "";
+  }finally{ hide(qs("#loading")); }
+});
 
-    // --- Utility Functions (fetch API implementation) ---
-    const getEl = id => document.getElementById(id);
-    const show = id => getEl(id).classList.remove('hidden');
-    const hide = id => getEl(id).classList.add('hidden');
-    const setInner = (id, html) => getEl(id).innerHTML = html;
-    
-    async function apiCall(flow, data = {}) {
-        const payload = { flow, data };
-        try {
-            const response = await fetch(GAS_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                return result.data;
-            } else {
-                throw new Error(result.message || 'API call failed with unknown error.');
-            }
-        } catch (error) {
-            console.error('Fetch Error:', error);
-            // This is the error seen on the client side:
-            throw new Error('Network or Server communication error: Failed to fetch/communicate.');
-        }
-    }
-    
-    function onServerFailure(error) {
-        hide('loading');
-        console.error('Apps Script Error:', error);
-        const errorEl = (state.currentFlow === 'login-screen' || state.currentFlow === 'login') ? getEl('login-error') : 
-                        state.currentFlow === 'check-in' ? getEl('checkin-error') : 
-                        getEl('checkout-error');
-                        
-        errorEl.innerText = error.message || 'An unknown server error occurred.';
-        show(errorEl.id);
-    }
-    
-    // --- Core UI & Navigation ---
-    function showFlow(flow) {
-        state.currentFlow = flow;
-        document.querySelectorAll('.screen').forEach(el => hide(el.id));
-        hide('login-error'); hide('checkin-error'); hide('checkout-error');
-        
-        if (flow === 'check-in') {
-            show('check-in-flow');
-            populateProjects('checkin');
-            loadWorkers('checkin');
-        } else if (flow === 'check-out') {
-            show('check-out-flow');
-            populateProjects('checkout');
-            loadWorkers('checkout');
-            loadAreas();
-            if (getEl('scaffolding-entries').children.length === 0) addScaffoldingEntry();
-            if (getEl('ot-workers-container').children.length === 0) addOtWorker();
-        } else if (flow === 'main-menu') {
-            show('main-menu');
-        } else if (flow === 'login-screen') {
-            show('login-screen');
-            loadSupervisorDropdown(); 
-        } else if (flow === 'success-screen') {
-            show('success-screen');
-        } else if (flow === 'confirmation-screen') {
-            show('confirmation-screen');
-        }
-    }
-    
-    function resetApp() {
-        getEl('scaffolding-entries').innerHTML = '';
-        getEl('ot-workers-container').innerHTML = '';
-        showFlow('main-menu');
-    }
+qs("#ciCopy").addEventListener("click", async ()=>{
+  const text = qs("#ciReportText").textContent || "";
+  try{
+    await navigator.clipboard.writeText(text);
+    alert("Copied to clipboard");
+  }catch(e){ alert("Copy failed"); }
+});
 
-    // --- Authentication ---
-    
-    async function loadSupervisorDropdown() {
-        state.currentFlow = 'login'; // Temp set to handle error reporting
-        const select = getEl('supervisor-select');
-        select.innerHTML = '<option value="">-- Loading Supervisors --</option>';
-        try {
-            const supervisors = await apiCall('login_list');
-            select.innerHTML = '<option value="">-- Select Supervisor --</option>';
-            supervisors.forEach(s => {
-                const option = document.createElement('option');
-                option.value = s.Username;
-                option.text = s.SupervisorName;
-                select.appendChild(option);
-            });
-            if (supervisors.length > 0) {
-                 select.value = supervisors[0].Username;
-                 getEl('username').value = supervisors[0].Username;
-            } else {
-                 select.innerHTML = '<option value="">-- No Supervisors Found! --</option>';
-            }
-        } catch (e) {
-            select.innerHTML = '<option value="">-- Error Loading Supervisors --</option>';
-            onServerFailure(e);
-        }
-    }
+qs("#ciShare").addEventListener("click", ()=>{
+  const text = qs("#ciReportText").textContent || "";
+  const url = "https://wa.me/?text=" + encodeURIComponent(text);
+  window.open(url, "_blank");
+});
 
-    async function handleLogin() {
-        const username = getEl('supervisor-select').value;
-        const passcode = getEl('passcode').value;
-        hide('login-error');
-        show('loading');
+/* Check-Out logic */
+qs("#coProject").addEventListener("change", async function(){
+  const pid = this.value;
+  if(!pid) return;
+  await loadWorkersForProject(pid);
+  await loadAreasForProject(pid);
+  rebuildAllWorkerSelects();
+  rebuildAreaSelects();
+});
 
-        if (!username || !passcode) {
-            hide('loading');
-            getEl('login-error').innerText = 'Please select a supervisor and enter a passcode.';
-            show('login-error');
-            return;
-        }
+async function loadAreasForProject(pid){
+  if(state.areasCache[pid]) return;
+  try{
+    const resp = await apiGet({action:"getAreas", projectId:pid});
+    state.areasCache[pid] = resp.areas || [];
+  }catch(err){
+    alert("Failed to load areas: " + err.message);
+  }
+}
 
-        try {
-            const supervisor = await apiCall('login', { username, passcode });
-            onLoginSuccess(supervisor);
-        } catch (e) {
-            onServerFailure(e);
-        }
-    }
+/* Entries UI (dynamic) */
+qs("#addEntry").addEventListener("click", addEntry);
+function addEntry(prefill){
+  const container = qs("#entriesContainer");
+  const div = document.createElement("div");
+  div.className = "entry";
 
-    async function onLoginSuccess(supervisor) {
-        hide('loading');
-        if (supervisor) {
-            state.supervisor = supervisor;
-            state.failedLoginAttempts = 0;
-            
-            getEl('supervisor-info').innerText = `Logged in as: ${supervisor.SupervisorName}`;
-            setInner('welcome-message', `Welcome, ${supervisor.SupervisorName}!`);
-            
-            try {
-                show('loading');
-                const data = await apiCall('load_data');
-                onDataLoaded(data);
-            } catch (e) {
-                onServerFailure(e);
-            }
-        } else {
-            state.failedLoginAttempts++;
-            getEl('login-error').innerText = 'Invalid passcode for the selected supervisor.';
-            show('login-error');
-        }
-    }
-    
-    function onDataLoaded(data) {
-        hide('loading');
-        state.projects = data.projects;
-        state.workers = data.workers;
-        state.areas = data.areas;
-        showFlow('main-menu');
-    }
+  div.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <div style="flex:1">
+        <label>Area</label>
+        <select class="areaSelect"></select>
+      </div>
+      <div style="width:120px">
+        <label>Job Type</label>
+        <select class="jobType">
+          <option value="Erection">Erection</option>
+          <option value="Dismantling">Dismantling</option>
+        </select>
+      </div>
+      <button class="removeEntry link-btn" title="Remove" style="margin-top:22px">Remove</button>
+    </div>
 
-    function logout() {
-        state.supervisor = null;
-        getEl('supervisor-info').innerText = '';
-        getEl('passcode').value = '';
-        showFlow('login-screen');
-    }
+    <div style="display:flex;gap:8px">
+      <div class="col">
+        <label>L (m)</label><input class="L" type="number" min="0" step="0.01"/>
+      </div>
+      <div class="col">
+        <label>W (m)</label><input class="W" type="number" min="0" step="0.01"/>
+      </div>
+      <div class="col">
+        <label>H (m)</label><input class="H" type="number" min="0" step="0.01"/>
+      </div>
+    </div>
 
-    // --- Data Population ---
-    function populateProjects(flowPrefix) {
-        const select = getEl(`${flowPrefix}-project`);
-        select.innerHTML = '<option value="">-- Select a Project --</option>';
-        state.projects.forEach(p => {
-            const option = document.createElement('option');
-            option.value = p.ProjectID;
-            option.text = `${p.ProjectName} (Shift: ${p.ShiftHours}h)`;
-            option.dataset.shiftHours = p.ShiftHours;
-            select.appendChild(option);
-        });
-        if (state.projects.length > 0) {
-            select.value = state.projects[0].ProjectID;
-        }
-    }
-    
-    function loadWorkers(flowPrefix) {
-        const projectId = getEl(`${flowPrefix}-project`).value;
-        const workerSelect = getEl(`${flowPrefix}-worker`);
-        if (workerSelect) {
-             workerSelect.innerHTML = '<option value="">-- Select a Worker --</option>';
-        }
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <div style="width:120px">
+        <label>Q</label><input class="Q" type="number" min="1" step="1" value="1"/>
+      </div>
+      <div style="width:120px">
+        <label>Manpower</label><input class="Manpower" type="number" min="0" step="1" value="1"/>
+      </div>
+      <div style="flex:1">
+        <label>Workers OT (comma EmpCodes or pick)</label>
+        <input class="WorkersOT" type="text" placeholder="E123, E456" />
+      </div>
+    </div>
 
-        const workerSelects = document.querySelectorAll('.ot-worker-select');
-        workerSelects.forEach(select => {
-            const oldValue = select.value;
-            select.innerHTML = '<option value="">-- Select OT Worker --</option>';
-            const filteredWorkers = state.workers.filter(w => w.ProjectID === projectId);
-            filteredWorkers.forEach(w => {
-                const option = document.createElement('option');
-                option.value = w.EmpCode;
-                option.text = `${w.WorkerName} (${w.EmpCode})`;
-                option.dataset.workerName = w.WorkerName;
-                select.appendChild(option);
-            });
-            select.value = oldValue;
-        });
-        
-        if (workerSelect) {
-            const filteredWorkers = state.workers.filter(w => w.ProjectID === projectId);
-            filteredWorkers.forEach(w => {
-                const option = document.createElement('option');
-                option.value = w.EmpCode;
-                option.text = `${w.WorkerName} (${w.EmpCode})`;
-                option.dataset.workerName = w.WorkerName;
-                workerSelect.appendChild(option);
-            });
-        }
-    }
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <div style="flex:1">
+        <label>OT Hours (sum for this entry)</label>
+        <input class="OTHours" type="number" min="0" step="0.1" value="0"/>
+      </div>
+      <div style="width:150px">
+        <label>Volume (calc)</label>
+        <div class="muted small calcVolume">0</div>
+      </div>
+    </div>
+  `;
 
-    function loadAreas() {
-        const projectId = getEl('checkout-project').value;
-        document.querySelectorAll('.area-select').forEach(select => {
-            const oldValue = select.value;
-            select.innerHTML = '<option value="">-- Select Area --</option>';
-            state.areas.filter(a => !a.ProjectID || a.ProjectID === projectId).forEach(a => {
-                const option = document.createElement('option');
-                option.value = a.AreaID;
-                option.text = a.AreaName;
-                option.dataset.areaName = a.AreaName;
-                select.appendChild(option);
-            });
-            select.value = oldValue;
-        });
-    }
+  container.appendChild(div);
 
-    // --- Check-Out Flow Helpers ---
-    let entryCounter = 0;
-    function addScaffoldingEntry(data = {}) {
-        entryCounter++;
-        const container = getEl('scaffolding-entries');
-        const entryDiv = document.createElement('div');
-        entryDiv.className = 'scaffolding-entry';
-        entryDiv.dataset.id = entryCounter;
-        
-        entryDiv.innerHTML = `
-            <h4>Entry #${entryCounter}</h4>
-            <button class="remove-entry" onclick="removeScaffoldingEntry(${entryCounter})">×</button>
+  // wire up remove and onchange handlers
+  div.querySelector(".removeEntry").addEventListener("click", ()=>{
+    div.remove();
+  });
 
-            <label for="area-${entryCounter}">Area</label>
-            <select id="area-${entryCounter}" class="area-select" data-field="AreaID" required></select>
+  const selects = div.querySelectorAll("select, input");
+  selects.forEach(s=>s.addEventListener("input", ()=> updateVolume(div)));
 
-            <label for="jobtype-${entryCounter}">Job Type</label>
-            <select id="jobtype-${entryCounter}" data-field="JobType" required>
-                <option value="">-- Select Type --</option>
-                <option value="Erection">Erection</option>
-                <option value="Dismantling">Dismantling</option>
-            </select>
+  // populate area & worker selects
+  rebuildAreaSelectFor(div);
+  rebuildAllWorkerSelects(); // for guidance if you later add worker dropdowns
+  if(prefill){
+    // optionally prefill fields
+    if(prefill.jobType) div.querySelector(".jobType").value = prefill.jobType;
+  }
+  updateVolume(div);
+}
 
-            <label for="l-${entryCounter}">Length (L in m)</label>
-            <input type="number" id="l-${entryCounter}" data-field="L" step="0.01" min="0" value="${data.L || ''}" required>
-            
-            <label for="w-${entryCounter}">Width (W in m)</label>
-            <input type="number" id="w-${entryCounter}" data-field="W" step="0.01" min="0" value="${data.W || ''}" required>
+function rebuildAreaSelectFor(div){
+  const pid = qs("#coProject").value;
+  const list = state.areasCache[pid] || [];
+  const sel = div.querySelector(".areaSelect");
+  sel.innerHTML = "";
+  sel.appendChild(new Option("-- select area --",""));
+  list.forEach(a=>{
+    sel.appendChild(new Option(`${a.AreaName} (${a.AreaID})`, a.AreaID));
+  });
+}
 
-            <label for="h-${entryCounter}">Height (H in m)</label>
-            <input type="number" id="h-${entryCounter}" data-field="H" step="0.01" min="0" value="${data.H || ''}" required>
+function rebuildAreaSelects(){
+  document.querySelectorAll(".entry").forEach(div=>rebuildAreaSelectFor(div));
+}
 
-            <label for="q-${entryCounter}">Quantity (Q)</label>
-            <input type="number" id="q-${entryCounter}" data-field="Q" step="1" min="1" value="${data.Q || ''}" required>
+function rebuildAllWorkerSelects(){
+  // In this simplified UI we use a free input for WorkersOT, so nothing required.
+}
 
-            <label for="manpower-${entryCounter}">Manpower</label>
-            <input type="number" id="manpower-${entryCounter}" data-field="Manpower" step="1" min="1" value="${data.Manpower || ''}" required>
-            
-            <label for="entry-notes-${entryCounter}">Notes (Optional)</label>
-            <input type="text" id="entry-notes-${entryCounter}" data-field="Notes" value="${data.Notes || ''}">
-        `;
-        container.appendChild(entryDiv);
-        loadAreas();
-        
-        if (data.AreaID) getEl(`area-${entryCounter}`).value = data.AreaID;
-        if (data.JobType) getEl(`jobtype-${entryCounter}`).value = data.JobType;
-    }
+function updateVolume(div){
+  const L = parseFloat(div.querySelector(".L").value) || 0;
+  const W = parseFloat(div.querySelector(".W").value) || 0;
+  const H = parseFloat(div.querySelector(".H").value) || 0;
+  const Q = parseInt(div.querySelector(".Q").value) || 0;
+  const job = div.querySelector(".jobType").value;
+  let vol = L*W*H*Q;
+  if(job === "Dismantling") vol = vol/2;
+  div.querySelector(".calcVolume").textContent = vol.toFixed(3);
+}
 
-    function removeScaffoldingEntry(id) {
-        const entryDiv = document.querySelector(`.scaffolding-entry[data-id="${id}"]`);
-        if (entryDiv) {
-            entryDiv.remove();
-        }
-    }
-    
-    let otCounter = 0;
-    function addOtWorker(data = {}) {
-        otCounter++;
-        const container = getEl('ot-workers-container');
-        const otDiv = document.createElement('div');
-        otDiv.className = 'ot-worker-box';
-        otDiv.dataset.id = otCounter;
-        
-        otDiv.innerHTML = `
-            <select id="ot-worker-${otCounter}" class="ot-worker-select" data-field="EmpCode" required></select>
-            <input type="number" id="ot-hours-${otCounter}" data-field="OT_Hours" placeholder="OT Hours" step="0.5" min="0.5" value="${data.OT_Hours || ''}" required>
-            <button onclick="removeOtWorker(${otCounter})" style="background-color: #dc3545; width: 40px; padding: 0; margin: 0; flex-shrink: 0;">-</button>
-        `;
-        container.appendChild(otDiv);
-        loadWorkers('checkout');
-        
-        if (data.EmpCode) getEl(`ot-worker-${otCounter}`).value = data.EmpCode;
-    }
-    
-    function removeOtWorker(id) {
-        const otDiv = document.querySelector(`.ot-worker-box[data-id="${id}"]`);
-        if (otDiv) {
-            otDiv.remove();
-        }
-    }
+/* gather entries */
+function gatherEntries(){
+  const pid = qs("#coProject").value;
+  const entries = [];
+  const divs = Array.from(document.querySelectorAll(".entry"));
+  for(const div of divs){
+    const areaId = div.querySelector(".areaSelect").value || "";
+    const areaName = div.querySelector(".areaSelect").selectedOptions[0] ? div.querySelector(".areaSelect").selectedOptions[0].text : "";
+    const jobType = div.querySelector(".jobType").value;
+    const L = parseFloat(div.querySelector(".L").value) || 0;
+    const W = parseFloat(div.querySelector(".W").value) || 0;
+    const H = parseFloat(div.querySelector(".H").value) || 0;
+    const Q = parseInt(div.querySelector(".Q").value) || 0;
+    const Manpower = parseInt(div.querySelector(".Manpower").value) || 0;
+    const WorkersOT = div.querySelector(".WorkersOT").value.trim();
+    const OT_Hours = parseFloat(div.querySelector(".OTHours").value) || 0;
 
-
-    // --- Submission Logic ---
-    function validateForm(flow) {
-        let isValid = true;
-        let errorMsg = '';
-        
-        const projSelect = getEl(`${flow}-project`);
-        if (!projSelect.value) {
-            errorMsg += 'Please select a Project.\n';
-            isValid = false;
-        }
-
-        if (flow === 'check-in') {
-            if (!getEl('checkin-worker').value) {
-                errorMsg += 'Please select a Worker.\n';
-                isValid = false;
-            }
-        } else if (flow === 'check-out') {
-            const entries = Array.from(document.querySelectorAll('.scaffolding-entry'));
-            if (entries.length === 0) {
-                errorMsg += 'Please add at least one Scaffolding Entry.\n';
-                isValid = false;
-            }
-            
-            entries.forEach((entry, index) => {
-                const id = entry.dataset.id;
-                const area = getEl(`area-${id}`).value;
-                const jobType = getEl(`jobtype-${id}`).value;
-                const L = parseFloat(getEl(`l-${id}`).value);
-                const W = parseFloat(getEl(`w-${id}`).value);
-                const H = parseFloat(getEl(`h-${id}`).value);
-                const Q = parseInt(getEl(`q-${id}`).value);
-                const Manpower = parseInt(getEl(`manpower-${id}`).value);
-
-                if (!area || !jobType || isNaN(L) || L <= 0 || isNaN(W) || W <= 0 || isNaN(H) || H <= 0 || isNaN(Q) || Q < 1 || isNaN(Manpower) || Manpower < 1) {
-                    errorMsg += `Entry #${index + 1}: Check all Area, Job Type, L, W, H (must be > 0), Q (must be >= 1) and Manpower (must be >= 1) fields.\n`;
-                    isValid = false;
-                }
-            });
-            
-            const otEntries = Array.from(document.querySelectorAll('.ot-worker-box'));
-            otEntries.forEach((otEntry, index) => {
-                 const id = otEntry.dataset.id;
-                 const empCode = getEl(`ot-worker-${id}`).value;
-                 const otHours = parseFloat(getEl(`ot-hours-${id}`).value);
-                 
-                 if (!empCode || isNaN(otHours) || otHours <= 0) {
-                     errorMsg += `OT Worker #${index + 1}: Select a Worker and enter valid OT Hours (must be > 0).\n`;
-                     isValid = false;
-                 }
-            });
-        }
-        
-        const errorEl = getEl(flow === 'check-in' ? 'checkin-error' : 'checkout-error');
-        if (!isValid) {
-            errorEl.innerText = errorMsg;
-            show(errorEl.id);
-        } else {
-            hide(errorEl.id);
-        }
-        return isValid;
-    }
-
-    function preparePayload(flow) {
-        const projectId = getEl(`${flow}-project`).value;
-        const project = state.projects.find(p => p.ProjectID === projectId);
-        
-        const basePayload = {
-            SupervisorUsername: state.supervisor.Username,
-            SupervisorName: state.supervisor.SupervisorName,
-            ProjectID: projectId,
-            ProjectName: project ? project.ProjectName : 'Unknown',
-            ShiftHours: project ? parseInt(project.ShiftHours) : 8,
-        };
-        
-        if (flow === 'check-in') {
-            const workerSelect = getEl('checkin-worker');
-            const empCode = workerSelect.value;
-            const workerName = workerSelect.options[workerSelect.selectedIndex].dataset.workerName || 'Unknown';
-            
-            return {
-                ...basePayload,
-                EmpCode: empCode,
-                WorkerName: workerName,
-                Notes: getEl('checkin-notes').value.trim(),
-            };
-        } else if (flow === 'check-out') {
-            const entries = Array.from(document.querySelectorAll('.scaffolding-entry')).map(entry => {
-                const id = entry.dataset.id;
-                const areaSelect = getEl(`area-${id}`);
-                return {
-                    AreaID: areaSelect.value,
-                    AreaName: areaSelect.options[areaSelect.selectedIndex].dataset.areaName || 'Unknown',
-                    JobType: getEl(`jobtype-${id}`).value,
-                    L: parseFloat(getEl(`l-${id}`).value),
-                    W: parseFloat(getEl(`w-${id}`).value),
-                    H: parseFloat(getEl(`h-${id}`).value),
-                    Q: parseInt(getEl(`q-${id}`).value),
-                    Manpower: parseInt(getEl(`manpower-${id}`).value),
-                    Notes: getEl(`entry-notes-${id}`).value.trim(),
-                };
-            });
-            
-            const otWorkers = Array.from(document.querySelectorAll('.ot-worker-box')).map(otBox => {
-                const id = otBox.dataset.id;
-                const workerSelect = getEl(`ot-worker-${id}`);
-                const empCode = workerSelect.value;
-                const workerName = workerSelect.options[workerSelect.selectedIndex].dataset.workerName || 'Unknown';
-                return {
-                    EmpCode: empCode,
-                    WorkerName: workerName,
-                    OT_Hours: parseFloat(getEl(`ot-hours-${id}`).value),
-                };
-            });
-            
-            return {
-                ...basePayload,
-                Entries: entries,
-                OTWorkers: otWorkers,
-                ReportNotes: getEl('checkout-notes').value.trim(),
-            };
-        }
-    }
-    
-    let currentPayload = null;
-
-    function confirmSubmission(flow) {
-        if (!validateForm(flow)) return;
-
-        currentPayload = preparePayload(flow);
-        const detailsEl = getEl('confirmation-details');
-        
-        let html = '';
-        if (flow === 'check-in') {
-            const workerSelect = getEl('checkin-worker');
-            const workerName = workerSelect.options[workerSelect.selectedIndex].text;
-            html = `
-                <p><strong>Flow:</strong> Worker Check-In</p>
-                <p><strong>Supervisor:</strong> ${currentPayload.SupervisorName}</p>
-                <p><strong>Project:</strong> ${currentPayload.ProjectName}</p>
-                <p><strong>Worker:</strong> ${workerName}</p>
-                <p><strong>Notes:</strong> ${currentPayload.Notes || 'N/A'}</p>
-            `;
-        } else if (flow === 'check-out') {
-            const totalManpower = currentPayload.Entries.reduce((sum, entry) => sum + entry.Manpower, 0);
-            const totalOTHours = currentPayload.OTWorkers.reduce((sum, ot) => sum + ot.OT_Hours, 0);
-            
-            html = `
-                <p><strong>Flow:</strong> Daily Scaffolding Report (Check-Out)</p>
-                <p><strong>Supervisor:</strong> ${currentPayload.SupervisorName}</p>
-                <p><strong>Project:</strong> ${currentPayload.ProjectName}</p>
-                <p><strong>Total Scaffolding Entries:</strong> ${currentPayload.Entries.length}</p>
-                <p><strong>Total Manpower (Day):</strong> ${totalManpower}</p>
-                <p><strong>Total OT Hours:</strong> ${totalOTHours} hours</p>
-                <p><strong>Report Notes:</strong> ${currentPayload.ReportNotes || 'N/A'}</p>
-                
-                <h4>Entries Summary:</h4>
-                <ul style="list-style-type: none; padding-left: 0;">
-                ${currentPayload.Entries.map((entry, i) => `
-                    <li><strong>${i + 1}.</strong> ${entry.JobType} in ${entry.AreaName}: L${entry.L} x W${entry.W} x H${entry.H} x Q${entry.Q} (Manpower: ${entry.Manpower})</li>
-                `).join('')}
-                </ul>
-            `;
-        }
-        
-        detailsEl.innerHTML = html;
-        getEl('confirm-submit-btn').dataset.flow = flow;
-        showFlow('confirmation-screen');
-    }
-    
-    function goBackToForm() {
-        if (getEl('confirm-submit-btn').dataset.flow === 'check-in') {
-            showFlow('check-in');
-        } else {
-            showFlow('check-out');
-        }
-    }
-
-    async function finalSubmit() {
-        const flow = getEl('confirm-submit-btn').dataset.flow;
-        hide('confirmation-screen');
-        show('loading');
-
-        try {
-            let result;
-            if (flow === 'check-in') {
-                result = await apiCall('submit_checkin', currentPayload);
-            } else if (flow === 'submit_checkout') {
-                // Use submit_checkout flow name
-                result = await apiCall('submit_checkout', currentPayload);
-            }
-            onSubmissionSuccess(result);
-        } catch (e) {
-            onServerFailure(e);
-        }
-    }
-    
-    function onSubmissionSuccess(result) {
-        hide('loading');
-        
-        let message = '';
-        if (getEl('confirm-submit-btn').dataset.flow === 'check-in') {
-            message = `Worker ${result.WorkerName} (${result.EmpCode}) successfully checked in.`;
-        } else {
-            message = `Daily report for Project ${result.ProjectName} successfully submitted with ${result.TotalEntries} scaffolding entries.`;
-        }
-
-        getEl('success-message').innerText = message;
-        getEl('generated-report').innerText = result.ReportText;
-        getEl('whatsapp-share-btn').dataset.reportText = result.ReportText;
-        
-        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-        if (navigator.share || isMobile) {
-            show('whatsapp-share-btn');
-        } else {
-            hide('whatsapp-share-btn');
-        }
-        
-        showFlow('success-screen');
-    }
-    
-    // --- Post-Submission Actions ---
-    function copyReport() {
-        const reportText = getEl('generated-report').innerText;
-        navigator.clipboard.writeText(reportText).then(() => {
-            alert('Report copied to clipboard!');
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            alert('Could not copy report. Please copy manually.');
-        });
-    }
-
-    function shareToWhatsApp() {
-        const reportText = getEl('whatsapp-share-btn').dataset.reportText;
-        const encodedText = encodeURIComponent(reportText);
-        const url = `https://wa.me/?text=${encodedText}`;
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'Scaffolding Daily Report',
-                text: reportText,
-            }).catch(error => {
-                if (error.name !== 'AbortError') {
-                    console.error('Error sharing:', error);
-                    window.open(url, '_blank');
-                }
-            });
-        } else {
-            window.open(url, '_blank');
-        }
-    }
-    
-    // --- App Initialization ---
-    document.addEventListener('DOMContentLoaded', () => {
-        showFlow('login-screen');
+    entries.push({
+      areaId, areaName, jobType, L, W, H, Q, Manpower, WorkersOT, OT_Hours
     });
+  }
+  return entries;
+}
 
+/* Confirm / submit checkout */
+qs("#coConfirm").addEventListener("click", async ()=>{
+  qs("#coError").style.display = "none";
+  const projectId = qs("#coProject").value;
+  if(!projectId){ qs("#coError").textContent = "Select project"; qs("#coError").style.display = ""; return; }
+  const entries = gatherEntries();
+  if(entries.length === 0){ qs("#coError").textContent = "Add at least one entry"; qs("#coError").style.display = ""; return; }
+  // basic validation
+  for(const [i,en] of entries.entries()){
+    if(en.Q < 1) { qs("#coError").textContent = `Entry ${i+1}: Q must be at least 1`; qs("#coError").style.display = ""; return; }
+    if(en.L < 0 || en.W < 0 || en.H < 0) { qs("#coError").textContent = `Entry ${i+1}: dimensions must be >= 0`; qs("#coError").style.display = ""; return; }
+  }
+
+  // totals from UI or compute
+  const totalManpower = parseInt(qs("#totalManpower").value) || entries.reduce((s,e)=>s+e.Manpower,0);
+  const totalOTHours = parseFloat(qs("#totalOTHours").value) || entries.reduce((s,e)=>s+e.OT_Hours,0);
+
+  // submit
+  try{
+    show(qs("#loading"));
+    const payload = {
+      supervisorUsername: state.supervisor.Username,
+      projectId,
+      entries,
+      totalManpower,
+      totalOTHours,
+      notes: qs("#coNotes").value.trim()
+    };
+    const resp = await apiPost("submitCheckOut", payload);
+    qs("#coReportText").textContent = resp.reportText;
+    show(qs("#coResult"));
+  }catch(err){
+    qs("#coError").textContent = err.message;
+    qs("#coError").style.display = "";
+  }finally{ hide(qs("#loading")); }
+});
+
+qs("#coCopy").addEventListener("click", async ()=>{
+  const text = qs("#coReportText").textContent || "";
+  try{
+    await navigator.clipboard.writeText(text);
+    alert("Copied to clipboard");
+  }catch(e){ alert("Copy failed"); }
+});
+qs("#coShare").addEventListener("click", ()=>{
+  const text = qs("#coReportText").textContent || "";
+  const url = "https://wa.me/?text=" + encodeURIComponent(text);
+  window.open(url, "_blank");
+});
+
+qs("#coCancel").addEventListener("click", ()=>{
+  hide(qs("#checkOutCard")); show(qs("#landing"));
+});
+
+/* Initialization */
+(function init(){
+  // restore supervisor from sessionStorage if present
+  const sup = sessionStorage.getItem("sup");
+  if(sup){
+    try{
+      state.supervisor = JSON.parse(sup);
+      afterLogin();
+      loadProjects();
+    }catch(e){}
+  }
+  // wire initial quick-check: when project is changed in CI, ensure workers loaded
+})();
 </script>
 </body>
 </html>
