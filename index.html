@@ -165,7 +165,7 @@
         // --- GLOBAL STATE ---
         let appData = { projects: [], workers: [], areas: [] };
         let currentUser = "";
-        let currentShiftHours = 8; // Retained for manhour calculation logic
+        let currentShiftHours = 8; 
 
         // --- NAVIGATION ---
         function notify(msg) {
@@ -185,7 +185,7 @@
         function showCheckOut() { 
             document.getElementById('measurement-container').innerHTML = ''; 
             addMeasurementRow(); 
-            // Call renderWorkers and calculateTotals directly here, avoiding handleProjectChange
+            // Ensures project/worker lists are updated on entry
             renderWorkers('ot');
             calculateTotals(); 
             switchView('view-checkout'); 
@@ -239,7 +239,6 @@
                 populate('ci-project');
                 populate('co-project');
                 
-                // Set the correct shift hours after populating and selecting the first project
                 const coSelect = document.getElementById('co-project');
                 if (coSelect.options.length > 0) {
                     currentShiftHours = parseInt(coSelect.options[coSelect.selectedIndex].dataset.shift) || 8;
@@ -272,15 +271,6 @@
             });
         }
         
-        // This function is simplified and used inline now
-        function handleProjectChange() {
-            const sel = document.getElementById('co-project');
-            const selectedOpt = sel.options[sel.selectedIndex];
-            currentShiftHours = selectedOpt ? parseInt(selectedOpt.dataset.shift) || 8 : 8;
-            renderWorkers('ot'); 
-            calculateTotals();
-        }
-
         // --- CHECK IN SUBMIT ---
         async function submitCheckIn() {
             const proj = document.getElementById('ci-project').value;
@@ -291,12 +281,17 @@
             document.getElementById('ci-loader').classList.remove('hidden');
             
             try {
-                await postData({ action: "submitCheckIn", supervisor: currentUser, project: proj, workers: selectedWorkers });
-                const date = new Date().toLocaleDateString();
-                // Removed symbols from report
-                let txt = `CHECK-IN REPORT\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\nWorker Count: ${selectedWorkers.length}`;
-                showReport(txt);
-            } catch(e) { notify("Error"); }
+                const res = await postData({ action: "submitCheckIn", supervisor: currentUser, project: proj, workers: selectedWorkers });
+                
+                if (res.status === "error") {
+                     notify("Check-In Error: " + res.message);
+                } else {
+                    const date = new Date().toLocaleDateString();
+                    // Cleaned up report text
+                    let txt = `DAILY CHECK-IN\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\nWorker Count: ${selectedWorkers.length}`;
+                    showReport(txt);
+                }
+            } catch(e) { notify("Error during Check-In."); console.error(e); }
             document.getElementById('ci-loader').classList.add('hidden');
         }
 
@@ -341,7 +336,6 @@
 
                 let vol = l * w * h * q;
                 
-                // Push detailed row data (Dismantling volume is halved for tracking purposes)
                 measurementList.push({
                     area: area, type: type, l: l, w: w, h: h, q: q, vol: (type === 'dismantling' ? vol/2 : vol)
                 });
@@ -357,10 +351,12 @@
                 code: c.value
             }));
 
-            // 3. Totals (Use the selected shift hours)
+            // 3. Totals (Shift Hours is retrieved from the selected project's data-shift)
+            const projSelect = document.getElementById('co-project');
+            const selectedOpt = projSelect.options[projSelect.selectedIndex];
+            const currentShiftHours = selectedOpt ? parseInt(selectedOpt.dataset.shift) || 8 : 8;
+            
             const manpower = parseInt(document.getElementById('co-manpower').value) || 0;
-            // Total Manhours = (Total Manpower * Shift Hours) + OT Workers Count * (Assumed 1 hour OT per worker)
-            // Note: Since we don't have an input for OT hours per worker, we use a count multiplier.
             const totalManhours = (manpower * currentShiftHours) + otDetails.length; 
             
             const totalVolume = totErec + totDism;
@@ -385,33 +381,42 @@
             const proj = document.getElementById('co-project').value;
             const data = getCheckoutData(); 
 
-            // Basic validation check
+            if (!proj) {
+                 notify("Please select a project.");
+                 return;
+            }
             if (data.summary.manpower <= 0) {
                  notify("Please enter Total Manpower.");
                  return;
+            }
+            if (!currentUser) {
+                notify("Login state lost. Please log in again.");
+                return;
             }
 
             document.getElementById('co-loader').classList.remove('hidden');
 
             try {
-                const res = await postData({
+                const payload = {
                     action: "submitCheckOut",
-                    supervisor: currentUser,
+                    supervisor: currentUser, // This must be currentUser, which is set on successful login
                     project: proj,
                     summary: data.summary,          
                     measurements: data.measurements,
                     otDetails: data.otDetails       
-                });
+                };
+
+                const res = await postData(payload);
 
                 if (res.status === "error") {
                     notify("Submission Error: " + res.message);
                 } else {
                     const date = new Date().toLocaleDateString();
-                    // Removed symbols from report
+                    // Cleaned up report text
                     const txt = `DAILY REPORT\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\n\nErection: ${data.summary.totErec}\nDismantling: ${data.summary.totDism}\nManpower: ${data.summary.manpower}\nOT Staff Count: ${data.summary.otCount}\nManhours: ${data.summary.totalManhours}\nProductivity: ${data.summary.prod}`;
                     showReport(txt);
                 }
-            } catch(e) { notify("Error submitting report: Check API and console."); console.error(e); }
+            } catch(e) { notify("Error submitting report. Check console."); console.error(e); }
             
             document.getElementById('co-loader').classList.add('hidden');
         }
