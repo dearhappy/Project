@@ -101,7 +101,7 @@
                 <h2 class="text-lg font-bold mb-4 text-orange-700 border-b pb-2">Check-Out & Report</h2>
 
                 <label class="block text-xs font-bold text-gray-600 mb-1">PROJECT</label>
-                <select id="co-project" onchange="handleProjectChange()" class="w-full p-3 border rounded mb-4 bg-gray-50 font-semibold"></select>
+                <select id="co-project" onchange="renderWorkers('ot'); calculateTotals();" class="w-full p-3 border rounded mb-4 bg-gray-50 font-semibold"></select>
 
                 <div class="bg-gray-50 p-2 rounded border mb-4">
                     <div class="flex justify-between items-center mb-2">
@@ -165,7 +165,7 @@
         // --- GLOBAL STATE ---
         let appData = { projects: [], workers: [], areas: [] };
         let currentUser = "";
-        let currentShiftHours = 8;
+        let currentShiftHours = 8; // Retained for manhour calculation logic
 
         // --- NAVIGATION ---
         function notify(msg) {
@@ -185,7 +185,9 @@
         function showCheckOut() { 
             document.getElementById('measurement-container').innerHTML = ''; 
             addMeasurementRow(); 
-            handleProjectChange();
+            // Call renderWorkers and calculateTotals directly here, avoiding handleProjectChange
+            renderWorkers('ot');
+            calculateTotals(); 
             switchView('view-checkout'); 
         }
 
@@ -236,6 +238,13 @@
                 };
                 populate('ci-project');
                 populate('co-project');
+                
+                // Set the correct shift hours after populating and selecting the first project
+                const coSelect = document.getElementById('co-project');
+                if (coSelect.options.length > 0) {
+                    currentShiftHours = parseInt(coSelect.options[coSelect.selectedIndex].dataset.shift) || 8;
+                }
+
             } catch (e) { notify("Failed to load data"); }
         }
 
@@ -262,7 +271,8 @@
                 container.appendChild(label);
             });
         }
-
+        
+        // This function is simplified and used inline now
         function handleProjectChange() {
             const sel = document.getElementById('co-project');
             const selectedOpt = sel.options[sel.selectedIndex];
@@ -283,7 +293,8 @@
             try {
                 await postData({ action: "submitCheckIn", supervisor: currentUser, project: proj, workers: selectedWorkers });
                 const date = new Date().toLocaleDateString();
-                let txt = `✅ *CHECK-IN*\n📅 ${date}\n👷 Sup: ${currentUser}\n🏗️ Proj: ${proj}\n👥 Count: ${selectedWorkers.length}`;
+                // Removed symbols from report
+                let txt = `CHECK-IN REPORT\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\nWorker Count: ${selectedWorkers.length}`;
                 showReport(txt);
             } catch(e) { notify("Error"); }
             document.getElementById('ci-loader').classList.add('hidden');
@@ -330,7 +341,7 @@
 
                 let vol = l * w * h * q;
                 
-                // Push detailed row data
+                // Push detailed row data (Dismantling volume is halved for tracking purposes)
                 measurementList.push({
                     area: area, type: type, l: l, w: w, h: h, q: q, vol: (type === 'dismantling' ? vol/2 : vol)
                 });
@@ -346,10 +357,14 @@
                 code: c.value
             }));
 
-            // 3. Totals
+            // 3. Totals (Use the selected shift hours)
             const manpower = parseInt(document.getElementById('co-manpower').value) || 0;
-            const totalManhours = (manpower * 8) + otDetails.length; 
-            const prod = totalManhours > 0 ? ((totErec + totDism) / totalManhours).toFixed(2) : 0;
+            // Total Manhours = (Total Manpower * Shift Hours) + OT Workers Count * (Assumed 1 hour OT per worker)
+            // Note: Since we don't have an input for OT hours per worker, we use a count multiplier.
+            const totalManhours = (manpower * currentShiftHours) + otDetails.length; 
+            
+            const totalVolume = totErec + totDism;
+            const prod = totalManhours > 0 ? (totalVolume / totalManhours).toFixed(2) : 0;
 
             return {
                 summary: { totErec, totDism, manpower, otCount: otDetails.length, totalManhours, prod },
@@ -370,10 +385,16 @@
             const proj = document.getElementById('co-project').value;
             const data = getCheckoutData(); 
 
+            // Basic validation check
+            if (data.summary.manpower <= 0) {
+                 notify("Please enter Total Manpower.");
+                 return;
+            }
+
             document.getElementById('co-loader').classList.remove('hidden');
 
             try {
-                await postData({
+                const res = await postData({
                     action: "submitCheckOut",
                     supervisor: currentUser,
                     project: proj,
@@ -382,10 +403,15 @@
                     otDetails: data.otDetails       
                 });
 
-                const date = new Date().toLocaleDateString();
-                const txt = `📋 *DAILY REPORT*\n📅 ${date}\n👷 Sup: ${currentUser}\n🏗️ Proj: ${proj}\n\nErection: ${data.summary.totErec}\nDismantling: ${data.summary.totDism}\nManpower: ${data.summary.manpower}\nOT Staff: ${data.summary.otCount}\nManhours: ${data.summary.totalManhours}\nProductivity: ${data.summary.prod}`;
-                showReport(txt);
-            } catch(e) { notify("Error submitting report"); }
+                if (res.status === "error") {
+                    notify("Submission Error: " + res.message);
+                } else {
+                    const date = new Date().toLocaleDateString();
+                    // Removed symbols from report
+                    const txt = `DAILY REPORT\nDate: ${date}\nSupervisor: ${currentUser}\nProject: ${proj}\n\nErection: ${data.summary.totErec}\nDismantling: ${data.summary.totDism}\nManpower: ${data.summary.manpower}\nOT Staff Count: ${data.summary.otCount}\nManhours: ${data.summary.totalManhours}\nProductivity: ${data.summary.prod}`;
+                    showReport(txt);
+                }
+            } catch(e) { notify("Error submitting report: Check API and console."); console.error(e); }
             
             document.getElementById('co-loader').classList.add('hidden');
         }
