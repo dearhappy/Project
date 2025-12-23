@@ -1,504 +1,688 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mobile Scaffolding Tracker</title>
-  <style>
-    :root{--accent:#0b7;--muted:#666}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;padding:0;background:#f7f8fa;color:#111}
-    header{background:#fff;padding:14px 16px;border-bottom:1px solid #e6e9ee;display:flex;align-items:center;gap:12px}
-    header h1{font-size:16px;margin:0}
-    .container{padding:12px;max-width:760px;margin:0 auto}
-    .card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 1px 0 rgba(0,0,0,0.04)}
-    label{display:block;font-size:13px;margin-bottom:6px;color:#333}
-    input[type="text"],input[type="password"],select,input[type="number"]{
-      width:100%;padding:10px;border:1px solid #d6dbe6;border-radius:6px;font-size:15px;box-sizing:border-box
-    }
-    button{background:var(--accent);color:#002b; border:0;padding:10px 14px;border-radius:8px;font-size:15px;cursor:pointer}
-    .muted{color:var(--muted);font-size:13px}
-    .row{display:flex;gap:8px}
-    .row .flex{flex:1}
-    .link-btn{background:transparent;color:var(--accent);border:0;padding:8px;font-size:14px;cursor:pointer}
-    .small{font-size:13px;padding:8px}
-    .entry{border:1px dashed #e2e6ee;padding:8px;border-radius:8px;margin-bottom:8px}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .error{color:#b00020}
-    @media(min-width:600px){header h1{font-size:18px}}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .tab-container {
+            display: flex;
+            background: #f5f5f5;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: #f5f5f5;
+            color: #666;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        .measurement-entry {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .measurement-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .measurement-row-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .add-btn {
+            background: #28a745;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            padding: 8px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .worker-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .worker-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        .worker-checkbox label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .report-output {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .ot-worker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .ot-worker select {
+            flex: 2;
+        }
+
+        .ot-worker input {
+            flex: 1;
+        }
+
+        .ot-worker button {
+            flex: 0;
+            padding: 10px 15px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1 id="appTitle">Scaffold Tracker</h1>
-    <div id="supervisorName" style="margin-left:auto;color:#555;font-size:13px"></div>
-  </header>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Attendance Tracker</h1>
+            <p>Worker Check-in & Check-out System</p>
+        </div>
 
-  <div class="container">
-    <div id="loginCard" class="card">
-      <label for="usernameSelect">Supervisor</label>
-      <select id="usernameSelect" aria-label="Supervisor username"></select>
+        <div class="tab-container">
+            <button class="tab active" onclick="switchTab('checkin')">Check In</button>
+            <button class="tab" onclick="switchTab('checkout')">Check Out</button>
+        </div>
 
-      <label for="passcode">Passcode</label>
-      <input id="passcode" type="password" inputmode="numeric" autocomplete="current-password" />
+        <div class="content">
+            <!-- Check In Section -->
+            <div id="checkin" class="section active">
+                <h2 style="margin-bottom: 20px; color: #333;">Worker Check In</h2>
+                
+                <div class="form-group">
+                    <label>Supervisor Username</label>
+                    <input type="text" id="checkin-username" placeholder="Enter username">
+                </div>
 
-      <div style="margin-top:8px" class="actions">
-        <button id="btnLogin">Login</button>
-        <button id="btnInit" class="link-btn">Init Sheets (admin)</button>
-        <button id="btnTestConnection" class="link-btn" title="Test the Web App connection">Test connection</button>
-      </div>
+                <div class="form-group">
+                    <label>Passcode</label>
+                    <input type="password" id="checkin-passcode" placeholder="Enter passcode">
+                </div>
 
-      <div id="loginMsg" class="muted" style="margin-top:8px"></div>
-      <div id="loginError" class="error" style="margin-top:8px;display:none"></div>
+                <button class="btn" onclick="loginCheckin()">Login</button>
+
+                <div id="checkin-form" class="hidden">
+                    <div class="form-group">
+                        <label>Select Project</label>
+                        <select id="checkin-project" onchange="loadCheckinWorkers()">
+                            <option value="">-- Select Project --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Workers (Check to mark present)</label>
+                        <div id="checkin-workers-list"></div>
+                    </div>
+
+                    <button class="btn" onclick="submitCheckin()">Submit Check In</button>
+
+                    <div id="checkin-report" class="report-output"></div>
+
+                    <div id="checkin-actions" class="action-buttons hidden">
+                        <button class="btn" onclick="copyCheckinReport()">Copy Report</button>
+                        <button class="btn" onclick="shareCheckinWhatsapp()">Share WhatsApp</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Check Out Section -->
+            <div id="checkout" class="section">
+                <h2 style="margin-bottom: 20px; color: #333;">Worker Check Out</h2>
+                
+                <div class="form-group">
+                    <label>Supervisor Username</label>
+                    <input type="text" id="checkout-username" placeholder="Enter username">
+                </div>
+
+                <div class="form-group">
+                    <label>Passcode</label>
+                    <input type="password" id="checkout-passcode" placeholder="Enter passcode">
+                </div>
+
+                <button class="btn" onclick="loginCheckout()">Login</button>
+
+                <div id="checkout-form" class="hidden">
+                    <div class="form-group">
+                        <label>Select Project</label>
+                        <select id="checkout-project" onchange="loadCheckoutData()">
+                            <option value="">-- Select Project --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Scaffolding Measurements</label>
+                        <button class="btn add-btn" onclick="addMeasurement()">+ Add Measurement</button>
+                        <div id="measurements-container"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Total Manpower</label>
+                        <input type="number" id="total-manpower" placeholder="Enter total manpower" min="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Workers in OT</label>
+                        <input type="number" id="ot-count" placeholder="Number of workers in OT" min="0" onchange="generateOTFields()">
+                    </div>
+
+                    <div id="ot-workers-container"></div>
+
+                    <button class="btn" onclick="submitCheckout()">Submit Check Out</button>
+
+                    <div id="checkout-report" class="report-output"></div>
+
+                    <div id="checkout-actions" class="action-buttons hidden">
+                        <button class="btn" onclick="copyCheckoutReport()">Copy Report</button>
+                        <button class="btn" onclick="shareCheckoutWhatsapp()">Share WhatsApp</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="mainUI" style="display:none">
-      <div class="card">
-        <label for="projectSelect">Project</label>
-        <select id="projectSelect"></select>
-      </div>
+    <script>
+        // Replace with your Google Apps Script Web App URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRHfgr74_zXY3sAOKgNrUTW_kJI4sJRytXbtaIc-CXaetgoYYX16nf3Vp_LIDQnX4A/exec';
 
-      <div class="card">
-        <div style="display:flex;gap:8px">
-          <button id="showCheckIn" class="small">Check-In</button>
-          <button id="showCheckOut" class="small">Check-Out</button>
-        </div>
-      </div>
+        let currentCheckinSupervisor = null;
+        let currentCheckoutSupervisor = null;
+        let projectData = {};
+        let measurementCount = 0;
+        let checkoutReportText = '';
+        let checkinReportText = '';
 
-      <div id="checkInCard" class="card" style="display:none">
-        <h3>Check-In</h3>
-        <label for="workerSelect">Worker</label>
-        <select id="workerSelect"></select>
-        <label for="checkinNotes">Notes (optional)</label>
-        <input id="checkinNotes" type="text" />
-        <div style="margin-top:8px" class="actions">
-          <button id="submitCheckIn">Submit Check-In</button>
-        </div>
-      </div>
-
-      <div id="checkOutCard" class="card" style="display:none">
-        <h3>Check-Out / Scaffolding Entries</h3>
-        <div id="entries"></div>
-        <div style="margin-top:8px" class="actions">
-          <button id="addEntry" class="small">Add Entry</button>
-          <button id="submitCheckOut" class="small">Submit All</button>
-        </div>
-        <div id="totals" class="muted" style="margin-top:8px"></div>
-      </div>
-
-      <div id="confirmCard" class="card" style="display:none">
-        <h3>Report</h3>
-        <pre id="reportText" style="white-space:pre-wrap"></pre>
-        <div class="actions" style="margin-top:8px">
-          <button id="copyReport" class="small">Copy Report</button>
-          <button id="shareWhatsApp" class="small">Share to WhatsApp</button>
-          <button id="done" class="small">Done</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // CONFIG: replace with your deployed Apps Script web app URL if hosting on GitHub Pages
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwameahWvKlBVNTUtsOFEZWXZQyzWvOBHc9zw1JAOVEGOxa2IcT8Rt_82oOZ0MhzOcmww/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
-
-    // Helper: call backend via google.script.run (if available) or fetch to web app
-    function apiCall(action, payload = {}) {
-      payload.action = action;
-      // If running inside Apps Script HTML sandbox:
-      if (window.google && google.script && google.script.run) {
-        return new Promise((resolve, reject) => {
-          google.script.run.withSuccessHandler(resolve).withFailureHandler(err => reject(err)).apiProxy(payload);
-        });
-      } else {
-        if (!WEB_APP_URL || WEB_APP_URL.startsWith('REPLACE_WITH')) {
-          return Promise.reject('No web app URL configured. Set WEB_APP_URL in index.html or serve this file from Apps Script.');
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
         }
-        return fetch(WEB_APP_URL, {
-          method: 'POST',
-          mode: 'cors',
-          credentials: 'omit',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        }).then(async r => {
-          if (!r.ok) {
-            // try to get text for debugging
-            const text = await r.text().catch(()=>'<no body>');
-            throw new Error(`HTTP ${r.status} ${r.statusText}: ${text}`);
-          }
-          return r.json();
-        }).catch(err => {
-          // Wrap to provide clearer guidance for users
-          const help = `Network error contacting web app: ${err && err.message ? err.message : err}. Possible causes:
-- Web app not deployed for "Anyone, even anonymous"
-- Using the wrong exec URL
-- CORS / authentication issues
-- Network, ad-blocker, or corporate firewall`;
-          const e = new Error(help);
-          e.original = err;
-          throw e;
-        });
-      }
-    }
 
-    // UI state
-    let currentSupervisor = null;
-    let projects = [];
-    let workers = {};
-    let otWorkersCache = {};
-    let MAX_OT_BOXES = 5;
-    let supervisors = [];
+        async function loginCheckin() {
+            const username = document.getElementById('checkin-username').value;
+            const passcode = document.getElementById('checkin-passcode').value;
 
-    // Elements
-    const loginCard = document.getElementById('loginCard');
-    const mainUI = document.getElementById('mainUI');
-    const usernameSelect = document.getElementById('usernameSelect');
-    const passcodeEl = document.getElementById('passcode');
-    const btnLogin = document.getElementById('btnLogin');
-    const btnInit = document.getElementById('btnInit');
-    const btnTestConnection = document.getElementById('btnTestConnection');
-    const loginMsg = document.getElementById('loginMsg');
-    const loginError = document.getElementById('loginError');
-    const supervisorNameEl = document.getElementById('supervisorName');
-    const projectSelect = document.getElementById('projectSelect');
-    const workerSelect = document.getElementById('workerSelect');
-    const showCheckIn = document.getElementById('showCheckIn');
-    const showCheckOut = document.getElementById('showCheckOut');
-    const checkInCard = document.getElementById('checkInCard');
-    const checkOutCard = document.getElementById('checkOutCard');
-    const submitCheckInBtn = document.getElementById('submitCheckIn');
-    const checkinNotes = document.getElementById('checkinNotes');
-    const entriesDiv = document.getElementById('entries');
-    const addEntryBtn = document.getElementById('addEntry');
-    const submitCheckOutBtn = document.getElementById('submitCheckOut');
-    const totalsDiv = document.getElementById('totals');
-    const confirmCard = document.getElementById('confirmCard');
-    const reportTextEl = document.getElementById('reportText');
-    const copyReportBtn = document.getElementById('copyReport');
-    const shareWhatsAppBtn = document.getElementById('shareWhatsApp');
-    const doneBtn = document.getElementById('done');
+            if (!username || !passcode) {
+                alert('Please enter both username and passcode');
+                return;
+            }
 
-    // Initialize UI
-    document.addEventListener('DOMContentLoaded', initUI);
+            try {
+                const response = await fetch(SCRIPT_URL + '?action=loginCheckin&username=' + username + '&passcode=' + passcode);
+                const result = await response.json();
 
-    function initUI() {
-      loginMsg.textContent = 'Loading supervisors...';
-      // Load supervisors first, then projects as needed
-      apiCall('getSupervisors').then(res => {
-        if (res && res.ok) {
-          supervisors = res.supervisors || [];
-          renderSupervisors(supervisors);
-          loginMsg.textContent = '';
-        } else {
-          loginMsg.textContent = '';
-          showLoginError(res && res.error ? res.error : 'Failed to load supervisors');
+                if (result.success) {
+                    currentCheckinSupervisor = result.supervisor;
+                    projectData = result.projects;
+                    
+                    const projectSelect = document.getElementById('checkin-project');
+                    projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+                    result.projects.forEach(project => {
+                        projectSelect.innerHTML += `<option value="${project}">${project}</option>`;
+                    });
+
+                    document.getElementById('checkin-form').classList.remove('hidden');
+                    alert('Login successful!');
+                } else {
+                    alert('Invalid credentials');
+                }
+            } catch (error) {
+                alert('Error connecting to server');
+            }
         }
-      }).catch(err => {
-        loginMsg.textContent = '';
-        showLoginError(err.message || String(err));
-      });
 
-      // Attempt to preload projects too for faster UX
-      apiCall('getProjects').then(res => {
-        if (res && res.ok) {
-          projects = res.projects || [];
-          renderProjects();
+        async function loadCheckinWorkers() {
+            const project = document.getElementById('checkin-project').value;
+            if (!project) return;
+
+            try {
+                const response = await fetch(SCRIPT_URL + '?action=getWorkers&project=' + project);
+                const result = await response.json();
+
+                const workersList = document.getElementById('checkin-workers-list');
+                workersList.innerHTML = '';
+
+                result.workers.forEach(worker => {
+                    workersList.innerHTML += `
+                        <div class="worker-checkbox">
+                            <input type="checkbox" id="worker-${worker.empCode}" value="${worker.empCode}">
+                            <label for="worker-${worker.empCode}">${worker.name} (${worker.empCode})</label>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                alert('Error loading workers');
+            }
         }
-      }).catch(()=>{ /* ignore early project load failures */ });
 
-      btnInit.addEventListener('click', () => {
-        setButtonBusy(btnInit, true, 'Initializing...');
-        apiCall('initSheets', {}).then(res => {
-          alert('initSheets completed: ' + (res && res.ok ? 'OK' : JSON.stringify(res)));
-        }).catch(e => alert('init failed: ' + (e && e.message ? e.message : e))).finally(()=>setButtonBusy(btnInit,false,'Init Sheets (admin)'));
-      });
+        async function submitCheckin() {
+            const project = document.getElementById('checkin-project').value;
+            const checkboxes = document.querySelectorAll('#checkin-workers-list input[type="checkbox"]:checked');
+            
+            const presentWorkers = Array.from(checkboxes).map(cb => cb.value);
 
-      btnTestConnection.addEventListener('click', testConnection);
+            if (!project || presentWorkers.length === 0) {
+                alert('Please select project and at least one worker');
+                return;
+            }
 
-      btnLogin.addEventListener('click', () => {
-        loginError.style.display = 'none';
-        const sel = usernameSelect.value;
-        const pass = passcodeEl.value.trim();
-        if (!sel) return showLoginError('Select a supervisor username from the dropdown.');
-        if (!pass) return showLoginError('Enter passcode.');
-        const sup = supervisors.find(s => String(s.Username)===String(sel));
-        if (!sup) return showLoginError('Selected supervisor not found.');
-        loginMsg.textContent = 'Verifying...';
-        apiCall('verifyLogin', {username: sel, passcode: pass}).then(res => {
-          loginMsg.textContent = '';
-          if (res && res.ok && res.supervisor) {
-            currentSupervisor = res.supervisor;
-            afterLogin();
-          } else {
-            showLoginError(res && res.error ? res.error : 'Invalid credentials');
-          }
-        }).catch(err => {
-          loginMsg.textContent = '';
-          showLoginError(err.message || String(err));
-        });
-      });
+            const data = {
+                action: 'submitCheckin',
+                supervisor: currentCheckinSupervisor,
+                project: project,
+                workers: presentWorkers,
+                date: new Date().toLocaleDateString()
+            };
 
-      showCheckIn.addEventListener('click', () => {
-        checkInCard.style.display = '';
-        checkOutCard.style.display = 'none';
-      });
-      showCheckOut.addEventListener('click', () => {
-        checkInCard.style.display = 'none';
-        checkOutCard.style.display = '';
-      });
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
 
-      submitCheckInBtn.addEventListener('click', () => {
-        if (!currentSupervisor) return showLoginError('Not logged in.');
-        const pid = projectSelect.value; if (!pid) return alert('Select project');
-        const empCode = workerSelect.value; if (!empCode) return alert('Select worker');
-        const workerText = workerSelect.selectedOptions[0].textContent;
-        const payload = {
-          supervisorUsername: currentSupervisor.Username,
-          supervisorName: currentSupervisor.SupervisorName,
-          projectId: pid,
-          projectName: (projects.find(p=>p.ProjectID===pid)||{}).ProjectName || '',
-          empCode,
-          workerName: workerText.replace(/\s*\(.+$/,''),
-          notes: checkinNotes.value || ''
-        };
-        submitCheckInBtn.disabled = true;
-        apiCall('submitCheckIn', {payload}).then(res => {
-          submitCheckInBtn.disabled = false;
-          if (res && res.ok) {
-            showReport(res.reportText);
-          } else {
-            alert('Error: ' + (res.error || JSON.stringify(res)));
-          }
-        }).catch(err => { submitCheckInBtn.disabled=false; alert('Error: ' + (err.message || err)); });
-      });
-
-      addEntryBtn.addEventListener('click', () => addEntryUI());
-      submitCheckOutBtn.addEventListener('click', submitCheckOutHandler);
-    }
-
-    function renderSupervisors(list) {
-      usernameSelect.innerHTML = '';
-      const opt = document.createElement('option'); opt.value=''; opt.textContent='-- Select Supervisor --'; usernameSelect.appendChild(opt);
-      list.forEach(s => {
-        const o = document.createElement('option'); o.value = s.Username; o.textContent = `${s.SupervisorName || s.Username} (${s.Username})`; usernameSelect.appendChild(o);
-      });
-    }
-
-    function showLoginError(msg) {
-      loginError.style.display = '';
-      loginError.textContent = msg;
-    }
-
-    function setButtonBusy(btn, busy, text) {
-      btn.disabled = busy;
-      if (text) btn.textContent = text;
-    }
-
-    function afterLogin() {
-      loginCard.style.display = 'none';
-      mainUI.style.display = '';
-      supervisorNameEl.textContent = currentSupervisor.SupervisorName || currentSupervisor.Username;
-      // Load projects & workers for selected project on change
-      apiCall('getProjects').then(res => {
-        if (res && res.ok) {
-          projects = res.projects || [];
-          renderProjects();
+                if (result.success) {
+                    checkinReportText = result.report;
+                    document.getElementById('checkin-report').textContent = result.report;
+                    document.getElementById('checkin-report').style.display = 'block';
+                    document.getElementById('checkin-actions').classList.remove('hidden');
+                    alert('Check-in submitted successfully!');
+                }
+            } catch (error) {
+                alert('Error submitting check-in');
+            }
         }
-      }).catch(e => console.warn(e));
-    }
 
-    function renderProjects() {
-      projectSelect.innerHTML = '';
-      const opt = document.createElement('option'); opt.value=''; opt.textContent='-- Select Project --'; projectSelect.appendChild(opt);
-      projects.forEach(p => {
-        const o = document.createElement('option'); o.value = p.ProjectID; o.textContent = `${p.ProjectName} (${p.ProjectID})`; projectSelect.appendChild(o);
-      });
-      projectSelect.addEventListener('change', () => {
-        const pid = projectSelect.value;
-        if (!pid) return;
-        apiCall('getWorkers', {projectId: pid}).then(res => {
-          if (res && res.ok) renderWorkers(res.workers || []);
-        }).catch(e => console.warn(e));
-        apiCall('getOTWorkers', {projectId: pid}).then(res => {
-          if (res && res.ok) otWorkersCache[pid]=res.otWorkers||[];
-        }).catch(()=>{});
-      });
-    }
-
-    function renderWorkers(list) {
-      workerSelect.innerHTML = '';
-      const opt = document.createElement('option'); opt.value=''; opt.textContent='-- Select Worker --'; workerSelect.appendChild(opt);
-      list.forEach(w => {
-        const o = document.createElement('option'); o.value = w.EmpCode; o.textContent = `${w.WorkerName} (${w.EmpCode})`; workerSelect.appendChild(o);
-      });
-    }
-
-    // Check-out UI builders (same as before, omitted some comments)
-    function addEntryUI(existing) {
-      const idx = document.querySelectorAll('.entry').length;
-      const wrapper = document.createElement('div'); wrapper.className='entry';
-      wrapper.innerHTML = `
-        <div class="row">
-          <div class="flex"><label>Area</label><select class="areaSelect"></select></div>
-          <div style="width:110px"><label>Job</label><select class="jobType"><option value="Erection">Erection</option><option value="Dismantling">Dismantling</option></select></div>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <div class="flex"><label>L (m)</label><input class="L" type="number" step="0.01" /></div>
-          <div class="flex"><label>W (m)</label><input class="W" type="number" step="0.01" /></div>
-          <div class="flex"><label>H (m)</label><input class="H" type="number" step="0.01" /></div>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <div style="width:120px"><label>Q</label><input class="Q" type="number" step="1" min="1" value="1" /></div>
-          <div style="width:120px"><label>Manpower</label><input class="manpower" type="number" step="1" min="0" value="1" /></div>
-          <div class="flex"><label>OT Hours (optional)</label><input class="otHours" type="number" step="0.1" min="0" /></div>
-        </div>
-        <div style="margin-top:8px"><label>Workers OT</label><div class="otBoxes"></div></div>
-        <div style="margin-top:8px" class="actions"><button class="removeEntry small">Remove</button></div>
-      `;
-      entriesDiv.appendChild(wrapper);
-
-      const pid = projectSelect.value;
-      apiCall('getAreas', {projectId: pid}).then(res => {
-        const sel = wrapper.querySelector('.areaSelect');
-        sel.innerHTML = '';
-        const o0 = document.createElement('option'); o0.value=''; o0.textContent='-- Area --'; sel.appendChild(o0);
-        if (res && res.ok) {
-          (res.areas || []).forEach(a => {
-            const o = document.createElement('option'); o.value = a.AreaID; o.textContent = a.AreaName + (a.ProjectID ? ' ('+a.ProjectID+')' : ''); sel.appendChild(o);
-          });
+        function copyCheckinReport() {
+            navigator.clipboard.writeText(checkinReportText);
+            alert('Report copied to clipboard!');
         }
-      }).catch(()=>{});
 
-      const otBoxes = wrapper.querySelector('.otBoxes');
-      const otList = otWorkersCache[pid] && otWorkersCache[pid].length ? otWorkersCache[pid] : [];
-      // default MAX_OT_BOXES or fallback
-      const boxes = MAX_OT_BOXES || 5;
-      for (let i=0;i<boxes;i++) {
-        const sel = document.createElement('select'); sel.className='otSelect'; sel.style.marginRight='6px'; sel.style.marginTop='6px';
-        const o0 = document.createElement('option'); o0.value=''; o0.textContent='--'; sel.appendChild(o0);
-        if (otList.length) {
-          otList.forEach(w => {
-            const o = document.createElement('option'); o.value = w.EmpCode; o.textContent = `${w.WorkerName} (${w.EmpCode})`; sel.appendChild(o);
-          });
-        } else {
-          Array.from(workerSelect.options).slice(1).forEach(opt => {
-            const o = document.createElement('option'); o.value = opt.value; o.textContent = opt.textContent; sel.appendChild(o);
-          });
+        function shareCheckinWhatsapp() {
+            const url = `https://wa.me/?text=${encodeURIComponent(checkinReportText)}`;
+            window.open(url, '_blank');
         }
-        otBoxes.appendChild(sel);
-      }
 
-      wrapper.querySelector('.removeEntry').addEventListener('click', () => { wrapper.remove(); computeTotals(); });
-      wrapper.addEventListener('input', computeTotals);
-      computeTotals();
-    }
+        async function loginCheckout() {
+            const username = document.getElementById('checkout-username').value;
+            const passcode = document.getElementById('checkout-passcode').value;
 
-    function computeTotals() {
-      let totalE=0,totalD=0,totalMan=0,totalOT=0;
-      document.querySelectorAll('.entry').forEach(e => {
-        const jobType = e.querySelector('.jobType').value;
-        const L = parseFloat(e.querySelector('.L').value||0);
-        const W = parseFloat(e.querySelector('.W').value||0);
-        const H = parseFloat(e.querySelector('.H').value||0);
-        const Q = parseInt(e.querySelector('.Q').value||0);
-        const manpower = parseInt(e.querySelector('.manpower').value||0);
-        const otHours = parseFloat(e.querySelector('.otHours').value||0);
-        const vol = (jobType === 'Erection') ? (L*W*H*Q) : ((L*W*H*Q)/2);
-        if (jobType === 'Erection') totalE += vol; else totalD += vol;
-        totalMan += manpower;
-        totalOT += isNaN(otHours)?0:otHours;
-      });
-      totalsDiv.textContent = `Totals — Erection: ${totalE.toFixed(2)}, Dismantling: ${totalD.toFixed(2)}, Manpower: ${totalMan}, OT Hours: ${totalOT.toFixed(1)}`;
-    }
+            if (!username || !passcode) {
+                alert('Please enter both username and passcode');
+                return;
+            }
 
-    function submitCheckOutHandler() {
-      if (!currentSupervisor) return showLoginError('Not logged in.');
-      const pid = projectSelect.value; if (!pid) return alert('Select project');
-      const entries = [];
-      const projectName = (projects.find(p=>p.ProjectID===pid)||{}).ProjectName || '';
-      document.querySelectorAll('.entry').forEach(e => {
-        const areaId = e.querySelector('.areaSelect').value;
-        const areaName = e.querySelector('.areaSelect').selectedOptions[0] ? e.querySelector('.areaSelect').selectedOptions[0].textContent.replace(/\s*\(.+$/,'') : '';
-        const jobType = e.querySelector('.jobType').value;
-        const L = parseFloat(e.querySelector('.L').value||0);
-        const W = parseFloat(e.querySelector('.W').value||0);
-        const H = parseFloat(e.querySelector('.H').value||0);
-        const Q = parseInt(e.querySelector('.Q').value||1,10);
-        const manpower = parseInt(e.querySelector('.manpower').value||0,10);
-        const otHours = parseFloat(e.querySelector('.otHours').value||0);
-        const otSelected = Array.from(e.querySelectorAll('.otSelect')).map(s=>s.value).filter(Boolean);
-        entries.push({areaId, areaName, jobType, L, W, H, Q, manpower, otHours, otSelected});
-      });
-      if (!entries.length) return alert('Add at least one entry');
-      const payload = {
-        supervisorUsername: currentSupervisor.Username,
-        supervisorName: currentSupervisor.SupervisorName,
-        projectId: pid,
-        projectName,
-        entries
-      };
-      submitCheckOutBtn.disabled = true;
-      apiCall('submitCheckOut', {payload}).then(res => {
-        submitCheckOutBtn.disabled = false;
-        if (res && res.ok) {
-          showReport(res.reportText);
-        } else {
-          alert('Error: ' + (res.error || JSON.stringify(res)));
+            try {
+                const response = await fetch(SCRIPT_URL + '?action=loginCheckout&username=' + username + '&passcode=' + passcode);
+                const result = await response.json();
+
+                if (result.success) {
+                    currentCheckoutSupervisor = result.supervisor;
+                    
+                    const projectSelect = document.getElementById('checkout-project');
+                    projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+                    result.projects.forEach(project => {
+                        projectSelect.innerHTML += `<option value="${project}">${project}</option>`;
+                    });
+
+                    document.getElementById('checkout-form').classList.remove('hidden');
+                    alert('Login successful!');
+                } else {
+                    alert('Invalid credentials');
+                }
+            } catch (error) {
+                alert('Error connecting to server');
+            }
         }
-      }).catch(err => { submitCheckOutBtn.disabled=false; alert('Error: ' + (err.message || err)); });
-    }
 
-    function showReport(text) {
-      reportTextEl.textContent = text;
-      confirmCard.style.display = '';
-      copyReportBtn.onclick = async () => {
-        try { await navigator.clipboard.writeText(text); alert('Copied'); } catch(e) { alert('Copy failed: ' + e); }
-      };
-      shareWhatsAppBtn.onclick = () => {
-        const url = 'https://wa.me/?text=' + encodeURIComponent(text);
-        window.open(url,'_blank');
-      };
-      doneBtn.onclick = () => {
-        confirmCard.style.display='none';
-        checkinNotes.value=''; entriesDiv.innerHTML=''; computeTotals();
-      };
-    }
+        async function loadCheckoutData() {
+            const project = document.getElementById('checkout-project').value;
+            if (!project) return;
 
-    // Connection test helper - attempts a lightweight fetch to the web app URL
-    function testConnection() {
-      loginError.style.display = 'none';
-      if (window.google && google.script && google.script.run) {
-        alert('This page is running inside Apps Script (google.script.run available). No cross-origin fetch needed.');
-        return;
-      }
-      if (!WEB_APP_URL || WEB_APP_URL.startsWith('REPLACE_WITH')) {
-        showLoginError('WEB_APP_URL is not configured in index.html. Set the deployed web app exec URL in the WEB_APP_URL constant.');
-        return;
-      }
-      // Try POST with a simple action that doesn't change data
-      fetch(WEB_APP_URL, {
-        method: 'POST',
-        mode: 'cors',
-        credentials: 'omit',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({action:'getConfig'})
-      }).then(async r => {
-        if (!r.ok) {
-          const txt = await r.text().catch(()=>'<no body>');
-          showLoginError(`Connection test failed: HTTP ${r.status} ${r.statusText}\n${txt}\n\nMake sure web app is deployed "Anyone, even anonymous" or accessible to your users.`);
-        } else {
-          const body = await r.json().catch(()=>null);
-          if (body && body.ok) {
-            alert('Connection test OK — web app reachable.');
-            // Optionally reload supervisors/projects
-            initUI();
-          } else {
-            showLoginError('Connection succeeded but response not OK: ' + JSON.stringify(body));
-          }
+            try {
+                const response = await fetch(SCRIPT_URL + '?action=getCheckoutData&project=' + project);
+                const result = await response.json();
+
+                window.projectAreas = result.areas;
+                window.projectWorkers = result.workers;
+                window.projectShiftHours = result.shiftHours;
+            } catch (error) {
+                alert('Error loading project data');
+            }
         }
-      }).catch(err => {
-        showLoginError('Connection test error: ' + (err.message || err) + '\n\nLikely causes:\n- Web app requires login (not "Anyone, even anonymous")\n- Wrong exec URL\n- Network / ad-blocker / corporate firewall\n- CORS / authentication issues');
-      });
-    }
-  </script>
+
+        function addMeasurement() {
+            measurementCount++;
+            const container = document.getElementById('measurements-container');
+            
+            const areasOptions = window.projectAreas ? window.projectAreas.map(area => 
+                `<option value="${area}">${area}</option>`
+            ).join('') : '';
+
+            container.innerHTML += `
+                <div class="measurement-entry" id="measurement-${measurementCount}">
+                    <div class="form-group">
+                        <label>Area</label>
+                        <select class="area-select">
+                            <option value="">-- Select Area --</option>
+                            ${areasOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Job Type</label>
+                        <select class="job-type">
+                            <option value="erection">Erection</option>
+                            <option value="dismantling">Dismantling</option>
+                        </select>
+                    </div>
+                    <div class="measurement-row-4">
+                        <div>
+                            <label>L (m)</label>
+                            <input type="number" class="measure-l" placeholder="Length" step="0.01" min="0">
+                        </div>
+                        <div>
+                            <label>W (m)</label>
+                            <input type="number" class="measure-w" placeholder="Width" step="0.01" min="0">
+                        </div>
+                        <div>
+                            <label>H (m)</label>
+                            <input type="number" class="measure-h" placeholder="Height" step="0.01" min="0">
+                        </div>
+                        <div>
+                            <label>Q</label>
+                            <input type="number" class="measure-q" placeholder="Quantity" step="1" min="0">
+                        </div>
+                    </div>
+                    <button class="btn remove-btn" onclick="removeMeasurement(${measurementCount})">Remove</button>
+                </div>
+            `;
+        }
+
+        function removeMeasurement(id) {
+            document.getElementById('measurement-' + id).remove();
+        }
+
+        function generateOTFields() {
+            const otCount = parseInt(document.getElementById('ot-count').value) || 0;
+            const container = document.getElementById('ot-workers-container');
+            container.innerHTML = '';
+
+            if (otCount > 0 && window.projectWorkers) {
+                const workersOptions = window.projectWorkers.map(worker => 
+                    `<option value="${worker.empCode}">${worker.name} (${worker.empCode})</option>`
+                ).join('');
+
+                container.innerHTML = '<h3 style="margin: 15px 0;">OT Workers</h3>';
+
+                for (let i = 0; i < otCount; i++) {
+                    container.innerHTML += `
+                        <div class="ot-worker">
+                            <select class="ot-worker-select">
+                                <option value="">-- Select Worker --</option>
+                                ${workersOptions}
+                            </select>
+                            <input type="number" class="ot-hours" placeholder="OT Hours" step="0.5" min="0">
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function submitCheckout() {
+            const project = document.getElementById('checkout-project').value;
+            const totalManpower = parseFloat(document.getElementById('total-manpower').value) || 0;
+            
+            const measurements = [];
+            document.querySelectorAll('.measurement-entry').forEach(entry => {
+                const area = entry.querySelector('.area-select').value;
+                const jobType = entry.querySelector('.job-type').value;
+                const l = parseFloat(entry.querySelector('.measure-l').value) || 0;
+                const w = parseFloat(entry.querySelector('.measure-w').value) || 0;
+                const h = parseFloat(entry.querySelector('.measure-h').value) || 0;
+                const q = parseFloat(entry.querySelector('.measure-q').value) || 0;
+
+                if (area && l && w && h && q) {
+                    const volume = l * w * h * q;
+                    const calculation = jobType === 'erection' ? volume : volume / 2;
+                    measurements.push({ area, jobType, l, w, h, q, calculation });
+                }
+            });
+
+            const otWorkers = [];
+            document.querySelectorAll('.ot-worker').forEach(entry => {
+                const worker = entry.querySelector('.ot-worker-select').value;
+                const hours = parseFloat(entry.querySelector('.ot-hours').value) || 0;
+                if (worker && hours > 0) {
+                    otWorkers.push({ worker, hours });
+                }
+            });
+
+            if (!project || measurements.length === 0) {
+                alert('Please select project and add at least one measurement');
+                return;
+            }
+
+            const data = {
+                action: 'submitCheckout',
+                supervisor: currentCheckoutSupervisor,
+                project: project,
+                date: new Date().toLocaleDateString(),
+                measurements: measurements,
+                totalManpower: totalManpower,
+                otWorkers: otWorkers,
+                shiftHours: window.projectShiftHours || 8
+            };
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    checkoutReportText = result.report;
+                    document.getElementById('checkout-report').textContent = result.report;
+                    document.getElementById('checkout-report').style.display = 'block';
+                    document.getElementById('checkout-actions').classList.remove('hidden');
+                    alert('Check-out submitted successfully!');
+                }
+            } catch (error) {
+                alert('Error submitting check-out');
+            }
+        }
+
+        function copyCheckoutReport() {
+            navigator.clipboard.writeText(checkoutReportText);
+            alert('Report copied to clipboard!');
+        }
+
+        function shareCheckoutWhatsapp() {
+            const url = `https://wa.me/?text=${encodeURIComponent(checkoutReportText)}`;
+            window.open(url, '_blank');
+        }
+    </script>
 </body>
 </html>
