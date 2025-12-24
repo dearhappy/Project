@@ -1,190 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Scaffolding Attendance & Productivity</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      background: #f2f2f2;
-    }
-    .container {
-      max-width: 520px;
-      margin: auto;
-      padding: 12px;
-    }
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 10px rgba(0,0,0,.1);
-    }
-    h2 {
-      margin-top: 0;
-    }
-    input, select, textarea, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    button {
-      background: #000;
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .row {
-      display: flex;
-      gap: 8px;
-    }
-    .row > * {
-      flex: 1;
-    }
-    textarea {
-      height: 140px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Web App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; padding-top: 20px; }
+        .attendance-card {
+            max-width: 450px;
+            margin: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background: #fff;
+            padding: 25px;
+        }
+        .hidden { display: none; }
+        .worker-item { font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
-
 <body>
-<div class="container">
 
-  <!-- CHECK IN -->
-  <div class="card">
-    <h2>🟢 Check-In</h2>
+    <div class="container">
+        <div class="attendance-card">
+            <h4 class="text-center text-primary mb-4">Worker Check-In</h4>
+            
+            <div id="loading" class="text-center mb-3">
+                <div class="loader"></div>
+                <p>Syncing Data...</p>
+            </div>
 
-    <input id="ciUser" placeholder="Supervisor Username">
-    <input id="ciPass" type="password" placeholder="Passcode">
+            <div id="loginSection" class="hidden">
+                <div class="mb-3">
+                    <input type="text" id="username" class="form-control" placeholder="Supervisor Username">
+                </div>
+                <div class="mb-3">
+                    <input type="password" id="passcode" class="form-control" placeholder="Passcode">
+                </div>
+                <button class="btn btn-primary w-100" onclick="handleLogin()">Login</button>
+            </div>
 
-    <select id="ciProject"></select>
-    <select id="ciWorker"></select>
+            <div id="mainApp" class="hidden">
+                <p class="text-muted small mb-1">Supervisor: <strong id="displaySup"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label small">Select Working Area</label>
+                    <select id="areaSelect" class="form-select"></select>
+                </div>
 
-    <button onclick="checkIn()">Submit Check-In</button>
+                <hr>
 
-    <textarea id="ciReport" placeholder="Check-In Report"></textarea>
-    <button onclick="copyText('ciReport')">Copy</button>
-    <button onclick="shareWhatsApp('ciReport')">WhatsApp</button>
-  </div>
+                <div class="mb-3">
+                    <label class="form-label small">Select Worker</label>
+                    <select id="workerSelect" class="form-select mb-2"></select>
+                    <button class="btn btn-outline-primary btn-sm w-100" onclick="addToList()">+ Add Worker</button>
+                </div>
 
-  <!-- CHECK OUT -->
-  <div class="card">
-    <h2>🔵 Check-Out</h2>
+                <div class="mb-3">
+                    <label class="small fw-bold">Check-in List:</label>
+                    <ul id="selectedList" class="list-group">
+                        </ul>
+                </div>
 
-    <input id="coUser" placeholder="Supervisor Username">
-    <input id="coPass" type="password" placeholder="Passcode">
-
-    <select id="coProject"></select>
-
-    <select id="area"></select>
-    <select id="jobType"></select>
-    <select id="scaffoldType"></select>
-    <select id="elevation"></select>
-
-    <div class="row">
-      <input id="l" placeholder="Length">
-      <input id="w" placeholder="Width">
+                <button class="btn btn-success w-100 mb-2" id="submitBtn" onclick="submitFinal()">Submit Attendance</button>
+            </div>
+        </div>
     </div>
 
-    <div class="row">
-      <input id="h" placeholder="Height">
-      <input id="q" placeholder="Quantity">
-    </div>
+    <script>
+        let sheetData = {};
+        let attendanceList = [];
 
-    <input id="manpower" placeholder="Total Manpower">
+        // 1. Fetch data from Google Sheet on Load
+        window.onload = function() {
+            google.script.run.withSuccessHandler(function(data) {
+                if(data.error) {
+                    alert("Error: " + data.error);
+                    return;
+                }
+                sheetData = data;
+                populateDropdowns();
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('loginSection').classList.remove('hidden');
+            }).getData();
+        };
 
-    <button onclick="checkOut()">Submit Check-Out</button>
+        function populateDropdowns() {
+            const areaDrop = document.getElementById('areaSelect');
+            sheetData.areas.forEach(a => areaDrop.innerHTML += `<option value="${a}">${a}</option>`);
 
-    <textarea id="coReport" placeholder="Daily Report"></textarea>
-    <button onclick="copyText('coReport')">Copy</button>
-    <button onclick="shareWhatsApp('coReport')">WhatsApp</button>
-  </div>
+            const workerDrop = document.getElementById('workerSelect');
+            sheetData.workers.forEach(w => {
+                workerDrop.innerHTML += `<option value="${w.code}">${w.name} (${w.code})</option>`;
+            });
+        }
 
-</div>
+        // 2. Login Logic
+        function handleLogin() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('passcode').value;
+            const user = sheetData.users.find(x => x.user === u && x.pass === p);
 
-<script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzRHfgr74_zXY3sAOKgNrUTW_kJI4sJRytXbtaIc-CXaetgoYYX16nf3Vp_LIDQnX4A/exec";
+            if (user) {
+                document.getElementById('displaySup').innerText = u;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+            } else {
+                alert("Incorrect Username or Passcode");
+            }
+        }
 
-async function loadInit() {
-  const res = await fetch(GAS_URL + "?action=init");
-  const data = await res.json();
+        // 3. Add worker to temporary list
+        function addToList() {
+            const sel = document.getElementById('workerSelect');
+            const nameCode = sel.options[sel.selectedIndex].text;
+            const code = sel.value;
+            const name = nameCode.split(' (')[0];
 
-  fill("ciProject", data.projects);
-  fill("coProject", data.projects);
-  fill("ciWorker", data.workers);
+            if (attendanceList.some(item => item.code === code)) {
+                alert("Worker already added");
+                return;
+            }
 
-  fill("area", data.area);
-  fill("jobType", data.jobType);
-  fill("scaffoldType", data.scaffoldType);
-  fill("elevation", data.elevation);
-}
+            attendanceList.push({name: name, code: code});
+            updateUIList();
+        }
 
-function fill(id, arr) {
-  const el = document.getElementById(id);
-  el.innerHTML = "<option value=''>Select</option>";
-  arr.forEach(v => {
-    const o = document.createElement("option");
-    o.value = v;
-    o.textContent = v;
-    el.appendChild(o);
-  });
-}
+        function updateUIList() {
+            const listEl = document.getElementById('selectedList');
+            listEl.innerHTML = attendanceList.map((w, index) => `
+                <li class="list-group-item worker-item">
+                    ${index + 1}. ${w.name} [${w.code}]
+                    <button class="btn btn-sm btn-link text-danger" onclick="removeItem(${index})">Remove</button>
+                </li>
+            `).join('');
+        }
 
-async function checkIn() {
-  const payload = {
-    action: "checkIn",
-    user: ciUser.value,
-    pass: ciPass.value,
-    project: ciProject.value,
-    worker: ciWorker.value
-  };
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
-  ciReport.value = await res.text();
-}
+        function removeItem(index) {
+            attendanceList.splice(index, 1);
+            updateUIList();
+        }
 
-async function checkOut() {
-  const payload = {
-    action: "checkOut",
-    user: coUser.value,
-    pass: coPass.value,
-    project: coProject.value,
-    area: area.value,
-    jobType: jobType.value,
-    scaffoldType: scaffoldType.value,
-    elevation: elevation.value,
-    l: +l.value,
-    w: +w.value,
-    h: +h.value,
-    q: +q.value,
-    manpower: +manpower.value
-  };
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
-  coReport.value = await res.text();
-}
+        // 4. Submit to Google Sheet & Generate WhatsApp Report
+        function submitFinal() {
+            if (attendanceList.length === 0) return alert("Please add at least one worker.");
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Processing...";
 
-function copyText(id) {
-  const t = document.getElementById(id);
-  t.select();
-  document.execCommand("copy");
-}
+            const payload = {
+                supervisor: document.getElementById('username').value,
+                area: document.getElementById('areaSelect').value,
+                workers: attendanceList
+            };
 
-function shareWhatsApp(id) {
-  const txt = encodeURIComponent(document.getElementById(id).value);
-  window.open("https://wa.me/?text=" + txt);
-}
+            google.script.run.withSuccessHandler(function() {
+                generateReport(payload);
+            }).submitAttendance(payload);
+        }
 
-loadInit();
-</script>
+        function generateReport(data) {
+            const dateStr = new Date().toLocaleDateString();
+            let report = `CHECK IN REPORT\nDate: ${dateStr}\nSupervisor: ${data.supervisor}\nArea: ${data.area}\n\n`;
+            
+            data.workers.forEach((w, i) => {
+                report += `${i + 1}. ${w.name}\n`;
+            });
+
+            // Trigger WhatsApp
+            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(report)}`;
+            window.open(whatsappUrl, '_blank');
+
+            alert("Data Saved Successfully!");
+            location.reload();
+        }
+    </script>
 </body>
 </html>
