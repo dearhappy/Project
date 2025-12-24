@@ -3,40 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Check-in App</title>
+    <title>Worker Check-in</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f7f6; display: flex; align-items: center; min-height: 100vh; padding: 10px; }
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 400px; margin: auto; }
+        body { background-color: #f0f2f5; padding: 10px; font-family: sans-serif; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 450px; margin: auto; }
         .hidden { display: none; }
-        #loader { font-size: 0.8rem; color: #666; }
-        .list-group-item { font-size: 0.9rem; border-left: 4px solid #0d6efd; margin-bottom: 5px; border-radius: 5px !important; }
+        .list-group-item { font-size: 0.85rem; border-left: 5px solid #0d6efd; margin-bottom: 5px; }
+        .loading-text { font-size: 0.9rem; color: #555; }
     </style>
 </head>
 <body>
 
-<div class="card p-4">
-    <h5 class="text-center fw-bold mb-4 text-primary">ATTENDANCE CHECK-IN</h5>
+<div class="card p-4 mt-3">
+    <h5 class="text-center fw-bold mb-4 text-primary">ATTENDANCE SYSTEM</h5>
     
-    <div id="loader" class="text-center mb-3">Initializing App...</div>
+    <div id="loader" class="text-center mb-3 loading-text">Syncing data from Cloud...</div>
 
     <div id="loginSec" class="hidden">
-        <input type="text" id="username" class="form-control mb-2" placeholder="Username">
-        <input type="password" id="passcode" class="form-control mb-3" placeholder="Passcode">
+        <label class="small fw-bold">Select Supervisor</label>
+        <select id="userDrop" class="form-select mb-2"></select>
+        <input type="password" id="passcode" class="form-control mb-3" placeholder="Enter Passcode">
         <button class="btn btn-primary w-100" onclick="handleLogin()">Login</button>
     </div>
 
     <div id="mainSec" class="hidden">
-        <p class="small mb-2">Welcome: <b id="supName"></b></p>
+        <div class="row mb-3">
+            <div class="col">
+                <label class="small fw-bold text-muted">Attendance Date</label>
+                <input type="date" id="attDate" class="form-control form-control-sm">
+            </div>
+        </div>
         
-        <label class="small text-muted">Select Area</label>
+        <label class="small fw-bold text-muted">Area</label>
         <select id="areaDrop" class="form-select mb-3"></select>
 
-        <label class="small text-muted">Worker List</label>
-        <select id="workerDrop" class="form-select mb-2"></select>
+        <label class="small fw-bold text-muted">Search & Add Worker</label>
+        <input type="text" id="workerSearch" class="form-control mb-2" placeholder="Type name or ID to search..." oninput="filterWorkers()">
+        <select id="workerDrop" class="form-select mb-2" size="4"></select>
         <button class="btn btn-outline-primary btn-sm w-100 mb-3" onclick="addWorkerToList()">+ Add to List</button>
 
-        <h6 class="small fw-bold">Ready to Check-in:</h6>
+        <h6 class="small fw-bold">Selected Workers:</h6>
         <ul id="checkinList" class="list-group mb-3 p-0"></ul>
 
         <button class="btn btn-success w-100" id="subBtn" onclick="finalSubmit()">Submit & Share Report</button>
@@ -44,14 +51,14 @@
 </div>
 
 <script>
-    // 1. UPDATE THIS URL AFTER DEPLOYING GAS
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzvVEu0jcARC0gWdY-Gy4w-HFo5h-tZ3bbKK2q3OP9hkTDTrbX87bucKfO-grBT3ws/exec";
-    
     let db = { users: [], areas: [], workers: [] };
     let tempWorkers = [];
 
-    // Auto-load data on start
     window.onload = () => {
+        // Set default date to today
+        document.getElementById('attDate').valueAsDate = new Date();
+        
         fetch(WEB_APP_URL, {
             method: "POST",
             body: JSON.stringify({ action: "getData" })
@@ -59,47 +66,68 @@
         .then(res => res.json())
         .then(data => {
             db = data;
+            const uD = document.getElementById('userDrop');
+            db.users.forEach(u => uD.innerHTML += `<option value="${u.user}">${u.user}</option>`);
+            
             const aD = document.getElementById('areaDrop');
             db.areas.forEach(a => aD.innerHTML += `<option value="${a}">${a}</option>`);
             
-            const wD = document.getElementById('workerDrop');
-            db.workers.forEach(w => wD.innerHTML += `<option value="${w.code}">${w.name} [${w.code}]</option>`);
+            filterWorkers(); // Initial worker list population
             
             document.getElementById('loader').classList.add('hidden');
             document.getElementById('loginSec').classList.remove('hidden');
-        })
-        .catch(err => alert("Error loading data. Check Web App URL."));
+        });
     };
 
+    function filterWorkers() {
+        const search = document.getElementById('workerSearch').value.toLowerCase();
+        const drop = document.getElementById('workerDrop');
+        drop.innerHTML = "";
+        
+        const filtered = db.workers.filter(w => 
+            w.name.toLowerCase().includes(search) || 
+            w.code.toLowerCase().includes(search) || 
+            w.oracle.toLowerCase().includes(search)
+        );
+
+        filtered.forEach(w => {
+            drop.innerHTML += `<option value="${w.code}">${w.name} (Code:${w.code} | Oracle:${w.oracle})</option>`;
+        });
+    }
+
     function handleLogin() {
-        const u = document.getElementById('username').value;
+        const u = document.getElementById('userDrop').value;
         const p = document.getElementById('passcode').value;
-        if(db.users.find(x => x.user === u && x.pass === p)) {
-            document.getElementById('supName').innerText = u;
+        const match = db.users.find(x => x.user === u && x.pass === p);
+        if(match) {
             document.getElementById('loginSec').classList.add('hidden');
             document.getElementById('mainSec').classList.remove('hidden');
         } else {
-            alert("Invalid Login");
+            alert("Invalid Passcode");
         }
     }
 
     function addWorkerToList() {
         const sel = document.getElementById('workerDrop');
+        if (sel.selectedIndex === -1) return alert("Select a worker from the list");
+        
         const code = sel.value;
-        const name = sel.options[sel.selectedIndex].text.split(' [')[0];
+        const worker = db.workers.find(w => w.code === code);
         
         if(!tempWorkers.some(w => w.code === code)) {
-            tempWorkers.push({ name, code });
+            tempWorkers.push(worker);
             renderList();
         }
+        document.getElementById('workerSearch').value = "";
+        filterWorkers();
     }
 
     function renderList() {
         const list = document.getElementById('checkinList');
         list.innerHTML = tempWorkers.map((w, i) => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                ${i+1}. ${w.name}
-                <span class="text-danger" style="cursor:pointer" onclick="removeWorker(${i})">✕</span>
+                <div><b>${i+1}. ${w.name}</b><br><small class="text-muted">Code: ${w.code} | Oracle: ${w.oracle}</small></div>
+                <span class="text-danger fw-bold" style="cursor:pointer" onclick="removeWorker(${i})">✕</span>
             </li>
         `).join('');
     }
@@ -114,12 +142,13 @@
         
         const btn = document.getElementById('subBtn');
         btn.disabled = true;
-        btn.innerText = "Saving...";
+        btn.innerText = "Saving to Google Sheets...";
 
         const payload = {
             action: "submit",
             data: {
-                supervisor: document.getElementById('username').value,
+                date: document.getElementById('attDate').value,
+                supervisor: document.getElementById('userDrop').value,
                 area: document.getElementById('areaDrop').value,
                 workers: tempWorkers
             }
@@ -127,18 +156,17 @@
 
         fetch(WEB_APP_URL, {
             method: "POST",
-            mode: "no-cors", // Required for cross-domain Google Script
+            mode: "no-cors",
             body: JSON.stringify(payload)
         }).then(() => {
             generateShareLink(payload.data);
-        }).catch(() => alert("Submission failed."));
+        });
     }
 
     function generateShareLink(data) {
-        const date = new Date().toLocaleDateString();
-        let report = `CHECK IN REPORT\nDate: ${date}\nSupervisor: ${data.supervisor}\nArea: ${data.area}\n\n`;
+        let report = `CHECK IN REPORT\nDate: ${data.date}\nSupervisor: ${data.supervisor}\nArea: ${data.area}\n\n`;
         data.workers.forEach((w, i) => {
-            report += `${i + 1}. ${w.name}\n`;
+            report += `${i + 1} ${w.name} ${w.code} ${w.oracle}\n`;
         });
 
         const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(report)}`;
@@ -146,6 +174,5 @@
         location.reload();
     }
 </script>
-
 </body>
 </html>
