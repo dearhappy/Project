@@ -1,11 +1,16 @@
 {
-  "background_color": "#ffffff",
-  "dir": "ltr",
+  "name": "Supervisor App",
+  "short_name": "Supervisor",
+  "description": "Supervisor management application",
+  "start_url": "/",
   "display": "standalone",
-  "name": "Field Incharge",
-  "orientation": "any",
-  "scope": "/",
-  "short_name": "Dpr",
-  "start_url": "/```",
-  "theme_color": "#ffffff"
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
